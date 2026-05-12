@@ -1,13 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/lib/auth-context";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
-import { Users, Plus } from "lucide-react";
-import { toast } from "sonner";
+import { Users } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/groups")({
   component: GroupsPage,
@@ -16,12 +11,8 @@ export const Route = createFileRoute("/_authenticated/groups")({
 type Group = { id: string; name: string; description: string | null; created_at: string };
 
 function GroupsPage() {
-  const { isStaff, profile, user } = useAuth();
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -32,21 +23,6 @@ function GroupsPage() {
 
   useEffect(() => { load(); }, []);
 
-  const createGroup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!profile?.tenant_id) return;
-    const { error } = await supabase.from("groups").insert({
-      tenant_id: profile.tenant_id,
-      name,
-      description: description || null,
-      created_by: user?.id,
-    });
-    if (error) { toast.error(error.message); return; }
-    toast.success("Grupo criado");
-    setName(""); setDescription(""); setShowForm(false);
-    load();
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -54,22 +30,8 @@ function GroupsPage() {
           <h1 className="font-display text-3xl">Grupos</h1>
           <p className="text-sm text-muted-foreground">Comunidades dentro do seu tenant</p>
         </div>
-        {isStaff && (
-          <Button onClick={() => setShowForm(!showForm)}>
-            <Plus className="h-4 w-4" /> Novo grupo
-          </Button>
-        )}
       </div>
 
-      {showForm && isStaff && (
-        <Card className="p-4">
-          <form onSubmit={createGroup} className="space-y-3">
-            <Input placeholder="Nome do grupo" value={name} onChange={(e) => setName(e.target.value)} required />
-            <Textarea placeholder="Descrição (opcional)" value={description} onChange={(e) => setDescription(e.target.value)} />
-            <Button type="submit">Criar</Button>
-          </form>
-        </Card>
-      )}
 
       {loading ? (
         <p className="text-muted-foreground">Carregando...</p>
