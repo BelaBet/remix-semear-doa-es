@@ -1,12 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card } from "@/components/ui/card";
+import { KpiCard } from "@/components/kpi-card";
 import { Building2, Users, Heart, TrendingUp, Calendar, Megaphone, DollarSign, Wallet } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/dashboard")({
   component: AdminDashboard,
-  head: () => ({ meta: [{ title: "ERP — Dashboard" }] }),
+  head: () => ({ meta: [{ title: "Painel — Visão geral" }] }),
 });
 
 const fmtBRL = (n: number) =>
