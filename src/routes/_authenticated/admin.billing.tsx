@@ -116,7 +116,7 @@ function BillingPage() {
                   <TableRow key={s.id}>
                     <TableCell>{(s.tenants as { name?: string } | null)?.name ?? "—"}</TableCell>
                     <TableCell>{(s.subscription_plans as { name?: string } | null)?.name ?? "—"}</TableCell>
-                    <TableCell><Badge variant={s.status === "active" ? "secondary" : s.status === "past_due" ? "destructive" : "outline"}>{s.status}</Badge></TableCell>
+                    <TableCell><Badge variant={s.status === "active" ? "secondary" : s.status === "past_due" ? "destructive" : "outline"}>{SUB_STATUS[s.status] ?? s.status}</Badge></TableCell>
                     <TableCell className="text-xs">{new Date(s.current_period_end).toLocaleDateString("pt-BR")}</TableCell>
                   </TableRow>
                 ))}
@@ -137,7 +137,7 @@ function BillingPage() {
                   <TableRow key={i.id}>
                     <TableCell>{(i.tenants as { name?: string } | null)?.name ?? "—"}</TableCell>
                     <TableCell className="text-right">{fmtBRL(Number(i.amount))}</TableCell>
-                    <TableCell><Badge variant={i.status === "paid" ? "secondary" : i.status === "overdue" ? "destructive" : "outline"}>{i.status}</Badge></TableCell>
+                    <TableCell><Badge variant={i.status === "paid" ? "secondary" : i.status === "overdue" ? "destructive" : "outline"}>{INV_STATUS[i.status] ?? i.status}</Badge></TableCell>
                     <TableCell className="text-xs">{new Date(i.period_start).toLocaleDateString("pt-BR")} → {new Date(i.period_end).toLocaleDateString("pt-BR")}</TableCell>
                     <TableCell className="text-xs">{i.due_date ? new Date(i.due_date).toLocaleDateString("pt-BR") : "—"}</TableCell>
                   </TableRow>
