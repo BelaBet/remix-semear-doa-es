@@ -6,7 +6,7 @@ import JsBarcode from "jsbarcode";
 import { useServerFn } from "@tanstack/react-start";
 import { useTenant } from "@/lib/tenant-context";
 import { createBoletoPayment } from "@/lib/boleto.functions";
-import { createPixPayment, createCreditCardPayment } from "@/lib/payments.functions";
+import { createPixPayment, createCreditCardPayment, pollPixCharge } from "@/lib/payments.functions";
 
 export type ContribMethod = {
   key: "pix" | "boleto" | "fatura" | "mais" | "custom";
