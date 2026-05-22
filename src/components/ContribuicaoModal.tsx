@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Check, Copy, Download, Loader2, Lock, Star, X } from "lucide-react";
+import { Check, Copy, Download, Loader2, Lock, Star, X, QrCode, CheckCircle2 } from "lucide-react";
 import jsPDF from "jspdf";
 import JsBarcode from "jsbarcode";
 import { useServerFn } from "@tanstack/react-start";
 import { useTenant } from "@/lib/tenant-context";
 import { createBoletoPayment } from "@/lib/boleto.functions";
+import { createPixPayment, createCreditCardPayment } from "@/lib/payments.functions";
 
 export type ContribMethod = {
   key: "pix" | "boleto" | "fatura" | "mais" | "custom";
@@ -93,12 +94,25 @@ function isValidCPF(raw: string) {
 
 export function ContribuicaoModal({ isOpen, onClose, onConfirm, method }: Props) {
   const { tenant } = useTenant();
-  const createPayment = useServerFn(createBoletoPayment);
+  const createBoleto = useServerFn(createBoletoPayment);
+  const createPix = useServerFn(createPixPayment);
+  const createCard = useServerFn(createCreditCardPayment);
   const [selected, setSelected] = useState<number | "custom">(25);
   const [value, setValue] = useState<string>("25");
   const [payerName, setPayerName] = useState("");
   const [payerEmail, setPayerEmail] = useState("");
   const [payerCpf, setPayerCpf] = useState("");
+  // Card-only fields
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardHolder, setCardHolder] = useState("");
+  const [cardExp, setCardExp] = useState(""); // MM/AA
+  const [cardCvv, setCardCvv] = useState("");
+  const [installments, setInstallments] = useState(1);
+  const [addrLine, setAddrLine] = useState("");
+  const [addrZip, setAddrZip] = useState("");
+  const [addrCity, setAddrCity] = useState("");
+  const [addrState, setAddrState] = useState("");
+
   const [boleto, setBoleto] = useState<{
     code: string;
     due: Date;
@@ -107,12 +121,29 @@ export function ContribuicaoModal({ isOpen, onClose, onConfirm, method }: Props)
     donationId?: string;
     pdfUrl?: string;
   } | null>(null);
+  const [pix, setPix] = useState<{
+    code: string;
+    qrUrl: string;
+    valor: number;
+    expiresAt: Date;
+    paymentId?: string;
+  } | null>(null);
+  const [cardResult, setCardResult] = useState<{
+    status: "pending" | "confirmed" | "failed";
+    valor: number;
+    paymentId?: string;
+    message?: string | null;
+  } | null>(null);
+
   const [copied, setCopied] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const copy = METHOD_COPY[method?.key ?? "custom"];
   const isBoleto = method?.key === "boleto";
+  const isPix = method?.key === "pix";
+  const isCard = method?.key === "fatura";
+  const needsPayer = isBoleto || isPix || isCard;
 
   useEffect(() => {
     if (isOpen) {
@@ -121,7 +152,18 @@ export function ContribuicaoModal({ isOpen, onClose, onConfirm, method }: Props)
       setPayerName("");
       setPayerEmail("");
       setPayerCpf("");
+      setCardNumber("");
+      setCardHolder("");
+      setCardExp("");
+      setCardCvv("");
+      setInstallments(1);
+      setAddrLine("");
+      setAddrZip("");
+      setAddrCity("");
+      setAddrState("");
       setBoleto(null);
+      setPix(null);
+      setCardResult(null);
       setCopied(false);
       setSubmitting(false);
       setError(null);
@@ -148,53 +190,133 @@ export function ContribuicaoModal({ isOpen, onClose, onConfirm, method }: Props)
     setSelected(PRESETS.includes(num) ? num : "custom");
   };
 
+  const validatePayer = (): { name: string; email: string; cpf: string } | null => {
+    const name = payerName.trim();
+    const email = payerEmail.trim();
+    const cpfDigits = payerCpf.replace(/\D/g, "");
+    if (name.length < 2) {
+      setError("Informe o nome completo do pagador.");
+      return null;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError("Informe um e-mail válido.");
+      return null;
+    }
+    if (!isValidCPF(cpfDigits)) {
+      setError("CPF inválido.");
+      return null;
+    }
+    return { name, email, cpf: cpfDigits };
+  };
+
   const handleConfirm = async (override?: number) => {
     const num = override ?? Number(value);
     if (!num || num <= 0) return;
-    if (isBoleto) {
-      if (!tenant?.id) {
-        setError("Não foi possível identificar a instituição.");
-        return;
-      }
-      const name = payerName.trim();
-      const email = payerEmail.trim();
-      const cpfDigits = payerCpf.replace(/\D/g, "");
-      if (name.length < 2) return setError("Informe o nome completo do pagador.");
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setError("Informe um e-mail válido.");
-      if (!isValidCPF(cpfDigits)) return setError("CPF inválido.");
+    if (!needsPayer) {
+      onConfirm?.(num);
+      onClose();
+      return;
+    }
+    if (!tenant?.id) {
+      setError("Não foi possível identificar a instituição.");
+      return;
+    }
+    const payer = validatePayer();
+    if (!payer) return;
 
-      setSubmitting(true);
-      setError(null);
-      try {
-        const result = await createPayment({
+    setSubmitting(true);
+    setError(null);
+    try {
+      if (isBoleto) {
+        const result = await createBoleto({
           data: {
             tenantId: tenant.id,
             amount: num,
-            customerName: name,
-            customerEmail: email,
-            customerDocument: cpfDigits,
+            customerName: payer.name,
+            customerEmail: payer.email,
+            customerDocument: payer.cpf,
           },
         });
         const due = result.dueAt ? new Date(result.dueAt) : addBusinessDays(new Date(), 3);
-        const code = result.line || generateBoletoCode(num);
         setBoleto({
-          code,
+          code: result.line || generateBoletoCode(num),
           due,
           valor: num,
           paymentId: result.paymentId,
           donationId: result.donationId,
           pdfUrl: result.pdfUrl,
         });
-        onConfirm?.(num);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Erro ao gerar boleto");
-      } finally {
-        setSubmitting(false);
+      } else if (isPix) {
+        const result = await createPix({
+          data: {
+            tenantId: tenant.id,
+            amount: num,
+            customerName: payer.name,
+            customerEmail: payer.email,
+            customerDocument: payer.cpf,
+          },
+        });
+        if (!result.qrCode) throw new Error("PIX não retornou código. Verifique a configuração da Pagar.me.");
+        setPix({
+          code: result.qrCode,
+          qrUrl: result.qrCodeUrl,
+          valor: num,
+          expiresAt: new Date(result.expiresAt),
+          paymentId: result.paymentId,
+        });
+      } else if (isCard) {
+        // Validate card
+        const digits = cardNumber.replace(/\s/g, "");
+        if (digits.length < 13) return setError("Número de cartão inválido.");
+        if (cardHolder.trim().length < 2) return setError("Informe o nome impresso no cartão.");
+        const [mm, yy] = cardExp.split("/").map((s) => s?.trim());
+        const expMonth = Number(mm);
+        const expYear = yy?.length === 2 ? 2000 + Number(yy) : Number(yy);
+        if (!expMonth || expMonth < 1 || expMonth > 12) return setError("Validade inválida (MM/AA).");
+        if (!expYear || expYear < new Date().getFullYear()) return setError("Validade inválida (MM/AA).");
+        if (cardCvv.length < 3) return setError("CVV inválido.");
+        if (addrLine.trim().length < 3) return setError("Informe o endereço de cobrança.");
+        if (addrZip.replace(/\D/g, "").length !== 8) return setError("CEP inválido.");
+        if (addrCity.trim().length < 2) return setError("Informe a cidade.");
+        if (addrState.trim().length !== 2) return setError("UF inválida (2 letras).");
+
+        const result = await createCard({
+          data: {
+            tenantId: tenant.id,
+            amount: num,
+            installments,
+            customerName: payer.name,
+            customerEmail: payer.email,
+            customerDocument: payer.cpf,
+            card: {
+              number: digits,
+              holderName: cardHolder.trim(),
+              expMonth,
+              expYear,
+              cvv: cardCvv,
+            },
+            billingAddress: {
+              line1: addrLine.trim(),
+              zipCode: addrZip,
+              city: addrCity.trim(),
+              state: addrState.trim().toUpperCase(),
+              country: "BR",
+            },
+          },
+        });
+        setCardResult({
+          status: result.status,
+          valor: num,
+          paymentId: result.paymentId,
+          message: result.acquirerMessage,
+        });
       }
-      return;
+      onConfirm?.(num);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao processar pagamento");
+    } finally {
+      setSubmitting(false);
     }
-    onConfirm?.(num);
-    onClose();
   };
 
 
@@ -395,7 +517,98 @@ export function ContribuicaoModal({ isOpen, onClose, onConfirm, method }: Props)
           <X className="h-5 w-5" />
         </button>
 
-        {boleto ? (
+        {pix ? (
+          <>
+            <h2 className="mt-1 text-[24px] font-bold leading-tight text-[#111827]">PIX gerado</h2>
+            <p className="mt-1 text-sm text-[#6B7280]">
+              Abra o app do seu banco, escolha pagar com PIX e escaneie o QR Code ou cole o código.
+            </p>
+
+            <div className="mt-5 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-4">
+              <div className="text-xs font-medium uppercase tracking-wide text-[#6B7280]">Valor</div>
+              <div className="mt-0.5 text-2xl font-bold text-[#111827]">
+                R$ {pix.valor.toFixed(2).replace(".", ",")}
+              </div>
+              <div className="mt-3 text-xs font-medium uppercase tracking-wide text-[#6B7280]">Expira em</div>
+              <div className="mt-0.5 text-sm font-semibold text-[#111827]">
+                {pix.expiresAt.toLocaleString("pt-BR")}
+              </div>
+            </div>
+
+            {pix.qrUrl && (
+              <div className="mt-4 flex justify-center">
+                <img
+                  src={pix.qrUrl}
+                  alt="QR Code PIX"
+                  className="h-56 w-56 rounded-xl border border-[#E5E7EB] bg-white p-2"
+                />
+              </div>
+            )}
+
+            <div className="mt-4">
+              <div className="text-xs font-medium uppercase tracking-wide text-[#6B7280]">
+                PIX Copia e Cola
+              </div>
+              <div className="mt-1 break-all rounded-xl border border-[#E5E7EB] bg-white p-3 font-mono text-[12px] text-[#111827]">
+                {pix.code}
+              </div>
+            </div>
+
+            <button
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(pix.code);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                } catch { /* noop */ }
+              }}
+              className="mt-3 flex h-[48px] w-full items-center justify-center gap-2 rounded-full bg-[#7C3AED] text-sm font-semibold text-white transition hover:bg-[#6D28D9]"
+            >
+              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              {copied ? "Código copiado" : "Copiar código PIX"}
+            </button>
+
+            <div className="mt-4 flex items-center justify-center gap-1.5 text-xs text-[#6B7280]">
+              <Lock className="h-3.5 w-3.5" /> Pagamento 100% seguro
+            </div>
+          </>
+        ) : cardResult ? (
+          <>
+            <div className="mt-1 flex flex-col items-center text-center">
+              {cardResult.status === "confirmed" ? (
+                <>
+                  <CheckCircle2 className="h-14 w-14 text-emerald-500" />
+                  <h2 className="mt-3 text-[24px] font-bold text-[#111827]">Pagamento aprovado</h2>
+                  <p className="mt-1 text-sm text-[#6B7280]">
+                    Sua contribuição de R$ {cardResult.valor.toFixed(2).replace(".", ",")} foi confirmada.
+                  </p>
+                </>
+              ) : cardResult.status === "pending" ? (
+                <>
+                  <Loader2 className="h-14 w-14 animate-spin text-[#7C3AED]" />
+                  <h2 className="mt-3 text-[24px] font-bold text-[#111827]">Processando pagamento</h2>
+                  <p className="mt-1 text-sm text-[#6B7280]">
+                    Aguardando confirmação da operadora.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <X className="h-14 w-14 rounded-full bg-red-100 p-3 text-red-600" />
+                  <h2 className="mt-3 text-[24px] font-bold text-[#111827]">Pagamento recusado</h2>
+                  <p className="mt-1 text-sm text-[#6B7280]">
+                    {cardResult.message ?? "Verifique os dados do cartão e tente novamente."}
+                  </p>
+                </>
+              )}
+            </div>
+            <button
+              onClick={onClose}
+              className="mt-6 flex h-[48px] w-full items-center justify-center rounded-full bg-[#7C3AED] text-sm font-semibold text-white hover:bg-[#6D28D9]"
+            >
+              Fechar
+            </button>
+          </>
+        ) : boleto ? (
           <>
             <h2 className="mt-1 text-[24px] font-bold leading-tight text-[#111827]">
               Boleto gerado
@@ -538,7 +751,7 @@ export function ContribuicaoModal({ isOpen, onClose, onConfirm, method }: Props)
               </button>
             </div>
 
-            {isBoleto && (
+            {needsPayer && (
               <div className="mt-5 space-y-2.5">
                 <div>
                   <label className="text-xs font-medium text-[#6B7280]">Nome completo</label>
@@ -576,6 +789,133 @@ export function ContribuicaoModal({ isOpen, onClose, onConfirm, method }: Props)
               </div>
             )}
 
+            {isCard && (
+              <div className="mt-4 space-y-2.5 border-t border-[#E5E7EB] pt-4">
+                <div className="text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
+                  Dados do cartão
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-[#6B7280]">Número do cartão</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={cardNumber}
+                    onChange={(e) => {
+                      const d = e.target.value.replace(/\D/g, "").slice(0, 19);
+                      setCardNumber(d.replace(/(\d{4})(?=\d)/g, "$1 "));
+                    }}
+                    placeholder="0000 0000 0000 0000"
+                    className="mt-1 h-11 w-full rounded-xl border border-[#E5E7EB] bg-white px-3 font-mono text-sm text-[#111827] outline-none focus:border-[#7C3AED]"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-[#6B7280]">Nome impresso no cartão</label>
+                  <input
+                    type="text"
+                    value={cardHolder}
+                    onChange={(e) => setCardHolder(e.target.value.toUpperCase())}
+                    maxLength={120}
+                    placeholder="NOME COMO NO CARTÃO"
+                    className="mt-1 h-11 w-full rounded-xl border border-[#E5E7EB] bg-white px-3 text-sm uppercase text-[#111827] outline-none focus:border-[#7C3AED]"
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-2.5">
+                  <div className="col-span-2">
+                    <label className="text-xs font-medium text-[#6B7280]">Validade</label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={cardExp}
+                      onChange={(e) => {
+                        const d = e.target.value.replace(/\D/g, "").slice(0, 4);
+                        setCardExp(d.length >= 3 ? `${d.slice(0, 2)}/${d.slice(2)}` : d);
+                      }}
+                      placeholder="MM/AA"
+                      className="mt-1 h-11 w-full rounded-xl border border-[#E5E7EB] bg-white px-3 font-mono text-sm text-[#111827] outline-none focus:border-[#7C3AED]"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-[#6B7280]">CVV</label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={cardCvv}
+                      onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                      placeholder="123"
+                      className="mt-1 h-11 w-full rounded-xl border border-[#E5E7EB] bg-white px-3 font-mono text-sm text-[#111827] outline-none focus:border-[#7C3AED]"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-[#6B7280]">Parcelas</label>
+                  <select
+                    value={installments}
+                    onChange={(e) => setInstallments(Number(e.target.value))}
+                    className="mt-1 h-11 w-full rounded-xl border border-[#E5E7EB] bg-white px-3 text-sm text-[#111827] outline-none focus:border-[#7C3AED]"
+                  >
+                    {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
+                      <option key={n} value={n}>
+                        {n}x de R$ {(Number(value || 0) / n).toFixed(2).replace(".", ",")}
+                        {n === 1 ? " (à vista)" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="pt-2 text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
+                  Endereço de cobrança
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-[#6B7280]">Endereço (rua, nº)</label>
+                  <input
+                    type="text"
+                    value={addrLine}
+                    onChange={(e) => setAddrLine(e.target.value)}
+                    maxLength={200}
+                    placeholder="Rua Exemplo, 123"
+                    className="mt-1 h-11 w-full rounded-xl border border-[#E5E7EB] bg-white px-3 text-sm text-[#111827] outline-none focus:border-[#7C3AED]"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="text-xs font-medium text-[#6B7280]">CEP</label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={addrZip}
+                      onChange={(e) => {
+                        const d = e.target.value.replace(/\D/g, "").slice(0, 8);
+                        setAddrZip(d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d);
+                      }}
+                      placeholder="00000-000"
+                      className="mt-1 h-11 w-full rounded-xl border border-[#E5E7EB] bg-white px-3 font-mono text-sm text-[#111827] outline-none focus:border-[#7C3AED]"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-[#6B7280]">UF</label>
+                    <input
+                      type="text"
+                      value={addrState}
+                      onChange={(e) => setAddrState(e.target.value.toUpperCase().slice(0, 2))}
+                      placeholder="SP"
+                      className="mt-1 h-11 w-full rounded-xl border border-[#E5E7EB] bg-white px-3 text-sm uppercase text-[#111827] outline-none focus:border-[#7C3AED]"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-[#6B7280]">Cidade</label>
+                  <input
+                    type="text"
+                    value={addrCity}
+                    onChange={(e) => setAddrCity(e.target.value)}
+                    maxLength={80}
+                    placeholder="São Paulo"
+                    className="mt-1 h-11 w-full rounded-xl border border-[#E5E7EB] bg-white px-3 text-sm text-[#111827] outline-none focus:border-[#7C3AED]"
+                  />
+                </div>
+              </div>
+            )}
+
 
 
             <div className="mt-5 flex items-center justify-center gap-1.5 text-xs text-[#6B7280]">
@@ -595,7 +935,7 @@ export function ContribuicaoModal({ isOpen, onClose, onConfirm, method }: Props)
               disabled={!Number(value) || submitting}
             >
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              {submitting ? "Gerando..." : copy.cta}
+              {submitting ? (isCard ? "Processando..." : "Gerando...") : copy.cta}
             </button>
           </>
         )}
