@@ -106,6 +106,7 @@ export function ContribuicaoModal({ isOpen, onClose, onConfirm, method }: Props)
   const pickPreset = (v: number) => {
     setSelected(v);
     setValue(String(v));
+    if (isBoleto) void handleConfirm(v);
   };
 
   const pickCustom = () => {
