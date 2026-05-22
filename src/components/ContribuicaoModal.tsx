@@ -935,7 +935,7 @@ export function ContribuicaoModal({ isOpen, onClose, onConfirm, method }: Props)
               disabled={!Number(value) || submitting}
             >
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              {submitting ? "Gerando..." : copy.cta}
+              {submitting ? (isCard ? "Processando..." : "Gerando...") : copy.cta}
             </button>
           </>
         )}
