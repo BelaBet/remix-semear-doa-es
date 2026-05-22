@@ -487,7 +487,7 @@ export function ContribuicaoModal({ isOpen, onClose, onConfirm, method }: Props)
             )}
 
             <button
-              onClick={handleConfirm}
+              onClick={() => handleConfirm()}
               className="mt-4 flex h-[52px] w-full items-center justify-center gap-2 rounded-full bg-[#7C3AED] text-base font-semibold text-white transition hover:bg-[#6D28D9] disabled:opacity-50"
               disabled={!Number(value) || submitting}
             >
