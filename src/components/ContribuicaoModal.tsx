@@ -71,11 +71,34 @@ function addBusinessDays(date: Date, days: number, country = "BR", state?: strin
   return d;
 }
 
+function formatCPF(raw: string) {
+  const d = raw.replace(/\D/g, "").slice(0, 11);
+  return d
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+}
+
+function isValidCPF(raw: string) {
+  const cpf = raw.replace(/\D/g, "");
+  if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+  const calc = (len: number) => {
+    let sum = 0;
+    for (let i = 0; i < len; i++) sum += Number(cpf[i]) * (len + 1 - i);
+    const r = (sum * 10) % 11;
+    return r === 10 ? 0 : r;
+  };
+  return calc(9) === Number(cpf[9]) && calc(10) === Number(cpf[10]);
+}
+
 export function ContribuicaoModal({ isOpen, onClose, onConfirm, method }: Props) {
   const { tenant } = useTenant();
   const createPayment = useServerFn(createBoletoPayment);
   const [selected, setSelected] = useState<number | "custom">(25);
   const [value, setValue] = useState<string>("25");
+  const [payerName, setPayerName] = useState("");
+  const [payerEmail, setPayerEmail] = useState("");
+  const [payerCpf, setPayerCpf] = useState("");
   const [boleto, setBoleto] = useState<{
     code: string;
     due: Date;
@@ -95,6 +118,9 @@ export function ContribuicaoModal({ isOpen, onClose, onConfirm, method }: Props)
     if (isOpen) {
       setSelected(25);
       setValue("25");
+      setPayerName("");
+      setPayerEmail("");
+      setPayerCpf("");
       setBoleto(null);
       setCopied(false);
       setSubmitting(false);
@@ -107,7 +133,6 @@ export function ContribuicaoModal({ isOpen, onClose, onConfirm, method }: Props)
   const pickPreset = (v: number) => {
     setSelected(v);
     setValue(String(v));
-    if (isBoleto) void handleConfirm(v);
   };
 
   const pickCustom = () => {
