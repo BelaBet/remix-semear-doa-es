@@ -47,6 +47,7 @@ function addBusinessDays(date: Date, days: number) {
 }
 
 export function ContribuicaoModal({ isOpen, onClose, onConfirm, method }: Props) {
+  const { tenant } = useTenant();
   const [selected, setSelected] = useState<number | "custom">(25);
   const [value, setValue] = useState<string>("25");
   const [boleto, setBoleto] = useState<{ code: string; due: Date; valor: number } | null>(null);
