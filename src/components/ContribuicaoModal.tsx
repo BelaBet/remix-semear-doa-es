@@ -192,10 +192,11 @@ export function ContribuicaoModal({ isOpen, onClose, onConfirm, method }: Props)
     setSelected(PRESETS.includes(num) ? num : "custom");
   };
 
-  const validatePayer = (): { name: string; email: string; cpf: string } | null => {
+  const validatePayer = (): { name: string; email: string; cpf: string; phone: string } | null => {
     const name = payerName.trim();
     const email = payerEmail.trim();
     const cpfDigits = payerCpf.replace(/\D/g, "");
+    const phoneDigits = payerPhone.replace(/\D/g, "");
     if (name.length < 2) {
       setError("Informe o nome completo do pagador.");
       return null;
@@ -208,7 +209,11 @@ export function ContribuicaoModal({ isOpen, onClose, onConfirm, method }: Props)
       setError("CPF inválido.");
       return null;
     }
-    return { name, email, cpf: cpfDigits };
+    if (phoneDigits.length < 10 || phoneDigits.length > 11) {
+      setError("Informe um telefone válido com DDD.");
+      return null;
+    }
+    return { name, email, cpf: cpfDigits, phone: phoneDigits };
   };
 
   const handleConfirm = async (override?: number) => {
