@@ -796,6 +796,28 @@ export function ContribuicaoModal({ isOpen, onClose, onConfirm, method }: Props)
                     className="mt-1 h-11 w-full rounded-xl border border-[#E5E7EB] bg-white px-3 text-sm text-[#111827] outline-none focus:border-[#7C3AED]"
                   />
                 </div>
+                <div>
+                  <label className="text-xs font-medium text-[#6B7280]">Celular (WhatsApp)</label>
+                  <input
+                    type="tel"
+                    inputMode="numeric"
+                    value={payerPhone}
+                    onChange={(e) => {
+                      const d = e.target.value.replace(/\D/g, "").slice(0, 11);
+                      const formatted =
+                        d.length > 10
+                          ? `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
+                          : d.length > 6
+                          ? `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`
+                          : d.length > 2
+                          ? `(${d.slice(0, 2)}) ${d.slice(2)}`
+                          : d;
+                      setPayerPhone(formatted);
+                    }}
+                    placeholder="(11) 99999-9999"
+                    className="mt-1 h-11 w-full rounded-xl border border-[#E5E7EB] bg-white px-3 text-sm text-[#111827] outline-none focus:border-[#7C3AED]"
+                  />
+                </div>
               </div>
             )}
 
