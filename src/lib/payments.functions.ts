@@ -57,8 +57,9 @@ function buildItems(amountCents: number) {
 const PixInput = z.object({
   tenantId: z.string().uuid(),
   amount: z.number().positive().max(1_000_000),
-  ...CustomerSchema,
+  ...OptionalCustomerSchema,
 });
+
 
 const CardInput = z.object({
   tenantId: z.string().uuid(),
