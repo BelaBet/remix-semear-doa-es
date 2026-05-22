@@ -278,13 +278,16 @@ export function ContribuicaoModal({ isOpen, onClose, onConfirm, method }: Props)
           },
         });
 
-        if (!result.qrCode) throw new Error("PIX não retornou código. Verifique a configuração da Pagar.me.");
+        if (!result.gatewayId) throw new Error("Pagar.me não retornou identificador do pedido.");
         setPix({
-          code: result.qrCode,
-          qrUrl: result.qrCodeUrl,
+          code: result.qrCode || "",
+          qrUrl: result.qrCodeUrl || "",
           valor: num,
-          expiresAt: new Date(result.expiresAt),
+          expiresAt: new Date(result.expiresAt || Date.now() + 60 * 60 * 1000),
           paymentId: result.paymentId,
+          gatewayId: result.gatewayId,
+          status: "pending",
+          waiting: !result.qrCode,
         });
       } else if (isCard) {
         // Validate card
