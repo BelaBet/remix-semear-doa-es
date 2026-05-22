@@ -128,6 +128,9 @@ export function ContribuicaoModal({ isOpen, onClose, onConfirm, method }: Props)
     valor: number;
     expiresAt: Date;
     paymentId?: string;
+    gatewayId?: string;
+    status?: "pending" | "paid" | "failed";
+    waiting?: boolean;
   } | null>(null);
   const [cardResult, setCardResult] = useState<{
     status: "pending" | "confirmed" | "failed";
