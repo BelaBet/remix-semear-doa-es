@@ -122,8 +122,8 @@ export function ContribuicaoModal({ isOpen, onClose, onConfirm, method }: Props)
     setSelected(PRESETS.includes(num) ? num : "custom");
   };
 
-  const handleConfirm = async () => {
-    const num = Number(value);
+  const handleConfirm = async (override?: number) => {
+    const num = override ?? Number(value);
     if (!num || num <= 0) return;
     if (isBoleto) {
       const code = generateBoletoCode(num);
