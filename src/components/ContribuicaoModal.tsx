@@ -64,13 +64,17 @@ export function ContribuicaoModal({ isOpen, onClose, onConfirm, method }: Props)
     onClose();
   };
 
-  return (
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4"
+      className="flex items-center justify-center bg-black/60 p-4"
+      style={{ position: "fixed", inset: 0, width: "100vw", height: "100vh", zIndex: 9999 }}
       onClick={onClose}
     >
       <div
         className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl sm:p-8"
+        style={{ zIndex: 10000 }}
         onClick={(e) => e.stopPropagation()}
       >
         <button
