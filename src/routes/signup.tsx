@@ -69,14 +69,15 @@ function SignupPage() {
     return (
       <div className="flex min-h-screen items-center justify-center px-4">
         <div className="w-full max-w-md text-center">
-          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary text-2xl">✓</div>
-          <h1 className="font-display text-2xl">Cadastro recebido</h1>
+          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary text-2xl">✉</div>
+          <h1 className="font-display text-2xl">Verifique seu e-mail</h1>
           <p className="mt-3 text-muted-foreground">
-            Aguardando aprovação do gestor de <strong>{tenant?.name ?? "sua comunidade"}</strong>.
-            Você receberá um aviso assim que tiver acesso.
+            Enviamos um link de confirmação para <strong>{email}</strong>.
+            Clique no link para validar sua conta.
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
-            Se sua conta exigir verificação por e-mail, confirme antes do gestor aprovar.
+            Após confirmar seu e-mail, seu cadastro será analisado pelo gestor de <strong>{tenant?.name ?? "sua comunidade"}</strong>.
+            Você receberá um aviso assim que tiver acesso.
           </p>
           <Button asChild className="mt-6" variant="outline"><Link to="/login">Voltar ao login</Link></Button>
         </div>
