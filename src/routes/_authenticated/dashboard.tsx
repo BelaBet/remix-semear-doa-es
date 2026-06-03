@@ -50,6 +50,9 @@ function Dashboard() {
         {isStaff ? "Visão geral da sua comunidade." : "Acompanhe sua jornada na comunidade."}
       </p>
 
+      <DonationsSummary />
+
+
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((c) => (
           <div key={c.label} className="rounded-2xl border bg-card p-5 shadow-[var(--shadow-card)]">
