@@ -272,6 +272,19 @@ function SignupPage() {
               <Label htmlFor="password">Senha</Label>
               <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} maxLength={72} autoComplete="new-password" />
             </div>
+            <div>
+              <Label htmlFor="confirm-password">Confirmar senha</Label>
+              <Input
+                id="confirm-password"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                minLength={8}
+                maxLength={72}
+                autoComplete="new-password"
+              />
+            </div>
           </div>
 
           <label className="flex items-start gap-3 text-xs text-muted-foreground">
