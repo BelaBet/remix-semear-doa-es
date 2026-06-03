@@ -22,12 +22,8 @@ function AuthLayout() {
     }
   }, [user, loading, router]);
 
-  // Pending users go straight to the onboarding flow after login.
-  useEffect(() => {
-    if (!loading && user && profile?.status === "pending" && location.pathname !== "/recebedores/onboarding") {
-      router.navigate({ to: "/recebedores/onboarding" });
-    }
-  }, [loading, user, profile?.status, location.pathname, router]);
+  // Onboarding access is gated inside /recebedores/onboarding itself
+  // (requires confirmed email + approved profile).
 
   void supabase;
   void redirect;
