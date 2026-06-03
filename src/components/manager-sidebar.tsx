@@ -5,6 +5,7 @@ import {
 } from "@/components/ui/sidebar";
 import { LayoutDashboard, Users, Megaphone, Settings, ArrowLeft } from "lucide-react";
 import { useTenant } from "@/lib/tenant-context";
+import { initials } from "@/lib/utils";
 
 const items = [
   { title: "Dashboard", url: "/manage/dashboard", icon: LayoutDashboard },
