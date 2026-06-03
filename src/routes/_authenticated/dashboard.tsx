@@ -32,9 +32,6 @@ function Dashboard() {
 
   const greeting = `Olá, ${profile?.full_name?.split(" ")[0] ?? "membro"} 👋`;
 
-  const cards = [
-    ...(isStaff ? [{ label: "Membros", value: stats?.members ?? "—", icon: Users }] : []),
-  ];
 
   return (
     <div>
