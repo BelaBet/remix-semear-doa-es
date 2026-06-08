@@ -184,7 +184,7 @@ export function ContribuicaoModal({ isOpen, onClose, onConfirm, method }: Props)
       setSubmitting(false);
       setError(null);
     }
-  }, [isOpen]);
+  }, [isOpen, profile?.full_name, profile?.email, profile?.phone, user?.email]);
 
   // Polling do PIX: quando temos gatewayId e ainda falta o QR Code (ou status pendente),
   // consultamos a Pagar.me a cada 3s até obter o código ou confirmação de pagamento.
