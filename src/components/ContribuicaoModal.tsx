@@ -894,8 +894,8 @@ export function ContribuicaoModal({ isOpen, onClose, onConfirm, method }: Props)
               <div className="mt-5 space-y-2.5">
                 {isPix && (
                   <div className="rounded-xl border border-[#FCD34D] bg-[#FEF3C7] px-3 py-2 text-xs text-[#92400E]">
-                    <strong>Identificar doação (opcional):</strong> nome, e-mail, CPF/CNPJ
-                    e telefone são opcionais para Pix. Doações anônimas são permitidas.
+                    <strong>CPF/CNPJ e celular obrigatórios.</strong> Nome e e-mail
+                    são opcionais — usaremos o celular para enviar o comprovante via WhatsApp.
                   </div>
                 )}
 
