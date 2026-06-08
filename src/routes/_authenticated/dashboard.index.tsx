@@ -42,6 +42,14 @@ function Dashboard() {
 
       <DonationsSummary />
 
+      {isStaff && (
+        <div className="mt-6">
+          <Link to="/dashboard/financeiro" className="inline-flex items-center gap-2 rounded-lg border bg-card px-4 py-2 text-sm hover:bg-accent">
+            Ver financeiro →
+          </Link>
+        </div>
+      )}
+
 
       {!onboardingDone && (
         <div className="mt-10 rounded-2xl border bg-card p-6">
