@@ -479,46 +479,64 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           deleted_by: string | null
+          donation_amount: number | null
           gateway_id: string | null
           id: string
           method: Database["public"]["Enums"]["payment_method"]
+          platform_recipient_id: string | null
           profile_id: string | null
           reference_id: string | null
           reference_type: Database["public"]["Enums"]["payment_ref_type"] | null
+          seller_recipient_id: string | null
+          split_platform_amount: number | null
+          split_seller_amount: number | null
           status: Database["public"]["Enums"]["payment_status"]
           tenant_id: string
+          ticketto_fee: number | null
         }
         Insert: {
           amount: number
           created_at?: string
           deleted_at?: string | null
           deleted_by?: string | null
+          donation_amount?: number | null
           gateway_id?: string | null
           id?: string
           method: Database["public"]["Enums"]["payment_method"]
+          platform_recipient_id?: string | null
           profile_id?: string | null
           reference_id?: string | null
           reference_type?:
             | Database["public"]["Enums"]["payment_ref_type"]
             | null
+          seller_recipient_id?: string | null
+          split_platform_amount?: number | null
+          split_seller_amount?: number | null
           status?: Database["public"]["Enums"]["payment_status"]
           tenant_id: string
+          ticketto_fee?: number | null
         }
         Update: {
           amount?: number
           created_at?: string
           deleted_at?: string | null
           deleted_by?: string | null
+          donation_amount?: number | null
           gateway_id?: string | null
           id?: string
           method?: Database["public"]["Enums"]["payment_method"]
+          platform_recipient_id?: string | null
           profile_id?: string | null
           reference_id?: string | null
           reference_type?:
             | Database["public"]["Enums"]["payment_ref_type"]
             | null
+          seller_recipient_id?: string | null
+          split_platform_amount?: number | null
+          split_seller_amount?: number | null
           status?: Database["public"]["Enums"]["payment_status"]
           tenant_id?: string
+          ticketto_fee?: number | null
         }
         Relationships: [
           {
@@ -773,16 +791,19 @@ export type Database = {
       }
       tenant_payment_settings: {
         Row: {
+          pagarme_recipient_id: string | null
           pix_key: string | null
           tenant_id: string
           updated_at: string
         }
         Insert: {
+          pagarme_recipient_id?: string | null
           pix_key?: string | null
           tenant_id: string
           updated_at?: string
         }
         Update: {
+          pagarme_recipient_id?: string | null
           pix_key?: string | null
           tenant_id?: string
           updated_at?: string
