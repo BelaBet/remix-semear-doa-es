@@ -942,7 +942,7 @@ export function ContribuicaoModal({ isOpen, onClose, onConfirm, method }: Props)
                 </div>
                 <div>
                   <label className="flex items-center gap-1 text-xs font-medium text-[#6B7280]">
-                    Celular (WhatsApp){isPix && " (opcional)"}
+                    Celular (WhatsApp)
                     {lockPhone && <Lock className="h-3 w-3" />}
                   </label>
                   <input
