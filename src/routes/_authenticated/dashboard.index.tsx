@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 import { DonationsSummary } from "@/components/donations-summary";
 
-export const Route = createFileRoute("/_authenticated/dashboard")({
+export const Route = createFileRoute("/_authenticated/dashboard/")({
   component: Dashboard,
   head: () => ({ meta: [{ title: "Painel" }] }),
 });
