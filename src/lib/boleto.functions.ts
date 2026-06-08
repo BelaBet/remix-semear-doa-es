@@ -40,6 +40,12 @@ export const createBoletoPayment = createServerFn({ method: "POST" })
     const platformRecipientId = process.env.PLATFORM_RECIPIENT_ID;
     const dueAt = addBusinessDays(new Date(), 3).toISOString();
 
+    const resolved = await resolveCustomer(data);
+    if (!resolved.name) throw new Error("Nome é obrigatório para boleto");
+    if (!resolved.email) throw new Error("E-mail é obrigatório para boleto");
+    if (!resolved.document) throw new Error("CPF ou CNPJ é obrigatório para boleto");
+    const customer = buildPagarmeCustomer(resolved, { allowAnonymous: false });
+
     const orderPayload = {
       items: [
         {
@@ -49,14 +55,7 @@ export const createBoletoPayment = createServerFn({ method: "POST" })
           code: "CONTRIB",
         },
       ],
-      customer: {
-        name: data.customerName ?? "Contribuinte Anônimo",
-        email: data.customerEmail ?? "contribuinte@anonimo.com",
-        type: "individual",
-        document: (data.customerDocument ?? "00000000000").replace(/\D/g, ""),
-        document_type: "CPF",
-        phones: { mobile_phone: parseBrPhone(data.customerPhone ?? "11900000000") },
-      },
+      customer,
       payments: [
         {
           payment_method: "boleto",
