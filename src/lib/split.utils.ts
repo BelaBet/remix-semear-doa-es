@@ -37,6 +37,7 @@ export function buildSplitPayload(
   donationAmount: number,
   tickettoFee: number,
   sellerRecipientId: string,
+  pixFixedFee = 0,
 ) {
   const platformRecipientId = process.env.PLATFORM_RECIPIENT_ID;
   if (!platformRecipientId) {
@@ -48,7 +49,7 @@ export function buildSplitPayload(
 
   return [
     {
-      amount: tickettoFee,
+      amount: tickettoFee + pixFixedFee,
       recipient_id: platformRecipientId,
       type: "flat" as const,
       options: {
