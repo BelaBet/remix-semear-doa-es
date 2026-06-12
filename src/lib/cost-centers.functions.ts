@@ -185,7 +185,10 @@ export const updateCostCenter = createServerFn({ method: "POST" })
     if (data.displayOrder !== undefined) patch.display_order = data.displayOrder;
     if (data.isActive !== undefined) patch.is_active = data.isActive;
 
-    const { error } = await supabaseAdmin.from("cost_centers").update(patch).eq("id", data.id);
+    const { error } = await supabaseAdmin
+      .from("cost_centers")
+      .update(patch as never)
+      .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { id: data.id };
   });
