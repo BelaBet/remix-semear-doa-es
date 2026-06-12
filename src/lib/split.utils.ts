@@ -196,3 +196,34 @@ export async function fetchSellerRecipientId(tenantId: string): Promise<string> 
   }
   return recipientId;
 }
+
+export type CostCenterConfig = {
+  id: string;
+  tenant_id: string;
+  split_platform_percent: number;
+  allows_installments: boolean;
+  max_installments: number;
+  is_active: boolean;
+};
+
+/**
+ * Busca configuração de um centro de custo, validando que pertence ao tenant
+ * e está ativo. Lança erro caso contrário.
+ */
+export async function fetchCostCenter(
+  costCenterId: string,
+  tenantId: string,
+): Promise<CostCenterConfig> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin
+    .from("cost_centers")
+    .select("id, tenant_id, split_platform_percent, allows_installments, max_installments, is_active")
+    .eq("id", costCenterId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  const cc = data as CostCenterConfig | null;
+  if (!cc) throw new Error("Centro de custo não encontrado");
+  if (cc.tenant_id !== tenantId) throw new Error("Centro de custo não pertence a esta igreja");
+  if (!cc.is_active) throw new Error("Centro de custo está desativado");
+  return cc;
+}
