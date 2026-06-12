@@ -160,14 +160,14 @@ export const Route = createFileRoute('/api/public/create-donation')({
         }
 
         // 3. Recipient
-        const { data: tps, error: tpsErr } = await supabaseAdmin
-          .from('tenant_payment_settings')
-          .select('pagarme_recipient_id')
+        const { data: tfc, error: tfcErr } = await supabaseAdmin
+          .from('tenant_financial_config')
+          .select('pagarme_recipient_id, use_pagarme, split_platform_percent')
           .eq('tenant_id', tenant.id)
           .maybeSingle();
-        if (tpsErr) return json({ error: 'Erro ao buscar dados de pagamento' }, 500);
-        const sellerRecipientId = tps?.pagarme_recipient_id;
-        if (!sellerRecipientId) {
+        if (tfcErr) return json({ error: 'Erro ao buscar dados de pagamento' }, 500);
+        const sellerRecipientId = tfc?.pagarme_recipient_id;
+        if (!sellerRecipientId || !tfc?.use_pagarme) {
           return json({ error: 'Igreja não habilitada para receber pagamentos' }, 412);
         }
         const platformRecipientId = process.env.PLATFORM_RECIPIENT_ID;
