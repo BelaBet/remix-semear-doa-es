@@ -171,16 +171,25 @@ export const registerTenantRecipient = createServerFn({ method: "POST" })
         recipient_id: result.id ?? null,
         recipient_status: result.status ?? "registration",
         recipient_error: null,
-        bank_code: data.bankCode,
-        bank_agency: data.bankAgency,
-        bank_account: data.bankAccount,
-        bank_account_dv: data.bankAccountDv,
-        account_type: data.accountType,
         legal_name: data.legalName,
-        holder_name: data.holderName,
-        holder_document: documentClean,
       })
       .eq("id", data.tenantId);
+
+    await supabaseAdmin
+      .from("tenant_bank_account")
+      .upsert(
+        {
+          tenant_id: data.tenantId,
+          bank_code: data.bankCode,
+          branch: data.bankAgency,
+          account: data.bankAccount,
+          account_digit: data.bankAccountDv,
+          account_type: data.accountType === "savings" ? "savings" : "checking",
+          holder_name: data.holderName,
+          holder_document: documentClean,
+        },
+        { onConflict: "tenant_id" },
+      );
 
     return {
       recipientId: result.id,
