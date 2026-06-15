@@ -157,6 +157,12 @@ export function ContribuicaoModal({ isOpen, onClose, onConfirm, method, costCent
   const [addrZip, setAddrZip] = useState("");
   const [addrCity, setAddrCity] = useState("");
   const [addrState, setAddrState] = useState("");
+  // Endereço do pagador (boleto)
+  const [boletoAddrLine, setBoletoAddrLine] = useState("");
+  const [boletoAddrZip, setBoletoAddrZip] = useState("");
+  const [boletoAddrCity, setBoletoAddrCity] = useState("");
+  const [boletoAddrState, setBoletoAddrState] = useState("");
+  const [boletoAddrNeighborhood, setBoletoAddrNeighborhood] = useState("");
 
   const [boleto, setBoleto] = useState<{
     code: string;
