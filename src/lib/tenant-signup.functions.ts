@@ -248,7 +248,24 @@ export const provisionTenant = createServerFn({ method: "POST" })
       .insert(tenantInsert as any)
       .select("id")
       .single();
-    if (cErr || !created) throw new Error(cErr?.message || "Falha ao criar a instituição.");
+    if (cErr || !created) {
+      // Race condition: documento inserido entre o check e o insert
+      if ((cErr as { code?: string } | null)?.code === "23505") {
+        const reusedId = await findReusableTenant();
+        if (reusedId) {
+          return {
+            tenant_id: reusedId,
+            slug: "",
+            public_url: "",
+            qr_code_url: "",
+            cost_center_id: null,
+            compliance_status: "pending_documents",
+            warnings: [],
+          };
+        }
+      }
+      throw new Error(cErr?.message || "Falha ao criar a instituição.");
+    }
     const tenantId = created.id as string;
 
     // 3. Sementes de pendências (3 obrigatórios + 3 opcionais)
