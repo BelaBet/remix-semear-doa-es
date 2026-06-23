@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { Line, Bar } from "react-chartjs-2";
+import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
   PointElement,
   LineElement,
-  BarElement,
   Tooltip,
   Legend,
   Filler,
@@ -30,20 +29,11 @@ import {
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  Tooltip,
-  Legend,
-  Filler,
-);
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler);
 
-const AUTHORIZED = new Set(["paid", "authorized", "succeeded", "approved"]);
-const PENDING = new Set(["pending", "processing", "queued", "waiting"]);
-const REFUSED = new Set(["failed", "refused", "declined", "canceled", "cancelled", "rejected"]);
+const AUTHORIZED = new Set(["confirmed"]);
+const PENDING = new Set(["pending"]);
+const REFUSED = new Set(["failed", "refused", "refunded", "canceled", "cancelled"]);
 
 type Periodo = "hoje" | "7d" | "30d" | "90d" | "ano" | "custom";
 type Row = { amount: number; created_at: string; status: string | null };
@@ -89,7 +79,12 @@ function useDashboardMetrics(periodo: Periodo, dataInicio: string, dataFim: stri
         setLoading(false);
         return;
       }
-      const normalized: Row[] = (data ?? []).map((d: any) => ({
+      type DonationRow = {
+        amount: number;
+        created_at: string;
+        payments: { status: string | null } | null;
+      };
+      const normalized: Row[] = ((data ?? []) as DonationRow[]).map((d) => ({
         amount: Number(d.amount) || 0,
         created_at: d.created_at,
         status: d.payments?.status ?? null,
@@ -105,8 +100,7 @@ function useDashboardMetrics(periodo: Periodo, dataInicio: string, dataFim: stri
   return { rows, loading, range: getDateRange(periodo, dataInicio, dataFim) };
 }
 
-const fmtBRL = (v: number) =>
-  v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const fmtBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const QUICK: { key: Periodo; label: string }[] = [
   { key: "hoje", label: "Hoje" },
@@ -198,7 +192,7 @@ export function DonationsSummary() {
     setPeriodo("7d");
   };
 
-  const { metrics, lineData, barData, statusCounts } = useMemo(() => {
+  const { metrics, lineData, statusCounts } = useMemo(() => {
     const r = rows ?? [];
     const created = r.reduce((s, x) => s + x.amount, 0);
     const authorized = r
@@ -243,7 +237,9 @@ export function DonationsSummary() {
       ],
     };
 
-    let a = 0, p = 0, f = 0;
+    let a = 0,
+      p = 0,
+      f = 0;
     for (const x of r) {
       if (x.status && AUTHORIZED.has(x.status)) a++;
       else if (x.status && REFUSED.has(x.status)) f++;
@@ -251,39 +247,42 @@ export function DonationsSummary() {
       else p++;
     }
     const totalC = a + p + f;
-    const barData = {
-      labels: ["Autorizadas", "Pendentes", "Recusadas"],
-      datasets: [
-        {
-          label: "Doações",
-          data: [a, p, f],
-          backgroundColor: ["#1D9E75", "#378ADD", "#E24B4A"],
-          borderRadius: 4,
-        },
-      ],
-    };
 
     return {
       metrics: { created, authorized, count, avg },
       lineData,
-      barData,
       statusCounts: { authorized: a, pending: p, refused: f, total: totalC },
     };
   }, [rows, periodo, range.inicio, range.fim]);
 
-  const cards = [
-    { label: "Doações criadas", value: fmtBRL(metrics.created) },
-    { label: "Doações autorizadas", value: fmtBRL(metrics.authorized), accent: true },
+  const pendingAmount = metrics.created - metrics.authorized;
+
+  const secondaryStats = [
     { label: "Número de doações", value: String(metrics.count) },
     { label: "Valor médio por doação", value: fmtBRL(metrics.avg) },
   ];
 
   const pct = (n: number) =>
     statusCounts.total ? `${Math.round((n / statusCounts.total) * 100)}%` : "0%";
-  const barLegend = [
-    { color: "#1D9E75", label: "Autorizadas", pct: pct(statusCounts.authorized) },
-    { color: "#378ADD", label: "Pendentes", pct: pct(statusCounts.pending) },
-    { color: "#E24B4A", label: "Recusadas", pct: pct(statusCounts.refused) },
+  const statusPills = [
+    {
+      color: "#1D9E75",
+      label: "Autorizadas",
+      count: statusCounts.authorized,
+      pct: pct(statusCounts.authorized),
+    },
+    {
+      color: "#C9A84C",
+      label: "Pendentes",
+      count: statusCounts.pending,
+      pct: pct(statusCounts.pending),
+    },
+    {
+      color: "#888780",
+      label: "Recusadas",
+      count: statusCounts.refused,
+      pct: pct(statusCounts.refused),
+    },
   ];
 
   const customAtivo = periodo === "custom";
@@ -316,9 +315,7 @@ export function DonationsSummary() {
                 }}
                 className={cn(
                   "rounded-md transition-colors",
-                  active
-                    ? "border text-[#C9A84C]"
-                    : "text-muted-foreground hover:text-foreground",
+                  active ? "border text-[#C9A84C]" : "text-muted-foreground hover:text-foreground",
                 )}
                 style={{
                   padding: "6px 14px",
@@ -373,35 +370,47 @@ export function DonationsSummary() {
         </div>
       </div>
 
-      {/* Metric cards */}
+      {/* Resumo: número-hero + secundários */}
       <div
-        className="grid grid-cols-2"
-        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10 }}
+        className="bg-card"
+        style={{
+          border: "0.5px solid var(--border)",
+          borderRadius: "var(--radius-lg, 0.75rem)",
+          padding: "20px 24px",
+        }}
       >
-        {cards.map((c) => (
-          <div
-            key={c.label}
-            className="bg-card"
-            style={{ borderRadius: "var(--radius-md, 0.5rem)", padding: "14px 16px" }}
-          >
-            <div style={{ fontSize: 12 }} className="text-muted-foreground">
-              {c.label}
-            </div>
+        <div className="flex flex-wrap items-center justify-between gap-6">
+          <div>
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">
+              Recebido no período
+            </p>
             {loading ? (
-              <Skeleton className="mt-2 h-6 w-24" />
+              <Skeleton className="mt-2 h-10 w-44" />
             ) : (
-              <div
-                style={{
-                  fontSize: 22,
-                  fontWeight: 500,
-                  color: c.accent ? "#1D9E75" : undefined,
-                }}
-              >
-                {c.value}
-              </div>
+              <p className="font-display mt-1 text-4xl leading-none">
+                {fmtBRL(metrics.authorized)}
+              </p>
+            )}
+            {!loading && pendingAmount > 0 && (
+              <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1 text-xs text-amber-700">
+                {fmtBRL(pendingAmount)} aguardando confirmação
+              </p>
             )}
           </div>
-        ))}
+
+          <div className="flex gap-8 text-right">
+            {secondaryStats.map((s) => (
+              <div key={s.label}>
+                <p className="text-xs uppercase tracking-wider text-muted-foreground">{s.label}</p>
+                {loading ? (
+                  <Skeleton className="mt-1 h-6 w-20" />
+                ) : (
+                  <p className="font-display mt-1 text-xl">{s.value}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Line chart */}
@@ -463,7 +472,7 @@ export function DonationsSummary() {
         </div>
       </div>
 
-      {/* Bar chart */}
+      {/* Status: pílulas em vez de gráfico de barra */}
       <div
         className="mt-6 bg-card"
         style={{
@@ -472,44 +481,35 @@ export function DonationsSummary() {
           padding: 20,
         }}
       >
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="font-medium">Doações por status</div>
-            <div className="text-xs text-muted-foreground">
-              Distribuição acumulada de doações
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-3 text-xs">
-            {barLegend.map((it) => (
-              <span key={it.label} className="flex items-center gap-1.5">
+        <div className="font-medium">Doações por status</div>
+        <div className="text-xs text-muted-foreground">Distribuição acumulada de doações</div>
+        <div className="mt-4 flex flex-wrap gap-3">
+          {loading ? (
+            <Skeleton className="h-14 w-full" />
+          ) : (
+            statusPills.map((it) => (
+              <div
+                key={it.label}
+                className="flex flex-1 min-w-[140px] items-center gap-3 rounded-lg bg-muted/60 px-4 py-3"
+              >
                 <span
                   style={{
-                    width: 10,
-                    height: 10,
+                    width: 8,
+                    height: 8,
                     background: it.color,
                     display: "inline-block",
-                    borderRadius: 2,
+                    borderRadius: "50%",
+                    flexShrink: 0,
                   }}
                 />
-                {it.label}{" "}
-                <span className="text-muted-foreground">({it.pct})</span>
-              </span>
-            ))}
-          </div>
-        </div>
-        <div className="mt-4" style={{ height: 260 }}>
-          {loading ? (
-            <Skeleton className="h-full w-full" />
-          ) : (
-            <Bar
-              data={barData}
-              options={{
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: { y: { ticks: { precision: 0 } } },
-              }}
-            />
+                <div>
+                  <p className="text-xs text-muted-foreground">{it.label}</p>
+                  <p className="font-display text-lg">
+                    {it.count} <span className="text-xs text-muted-foreground">({it.pct})</span>
+                  </p>
+                </div>
+              </div>
+            ))
           )}
         </div>
       </div>
