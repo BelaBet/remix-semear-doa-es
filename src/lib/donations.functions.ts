@@ -328,7 +328,7 @@ export const getDonationDetail = createServerFn({ method: "POST" })
       errorMessage: access.isPlatformAdmin ? r.error_message : null,
       gatewayId: r.gateway_id,
       createdAt: r.created_at,
-      updatedAt: r.updated_at,
+      updatedAt: null,
       billingAddress,
       isPlatformAdmin: access.isPlatformAdmin,
     };
