@@ -19,7 +19,7 @@ export const FEES = {
     adquirencia_2x_percent: 0.0207,
     antecipacao_custo_percent: 0.0148,
     tk2_op_percent: 0.0172,
-    adm_percent: 0.035,
+    adm_percent: 0.0352,
     transacao_fixa: 28,
   },
 
@@ -29,7 +29,7 @@ export const FEES = {
     adquirencia_2x_percent: 0.0249,
     antecipacao_custo_percent: 0.0148,
     tk2_op_percent: 0.0172,
-    adm_percent: 0.035,
+    adm_percent: 0.0352,
     transacao_fixa: 28,
   },
 
@@ -37,7 +37,7 @@ export const FEES = {
   boleto: {
     adquirencia_fixa: 100,      // R$1,00
     tk2_operacional_fixo: 250,  // R$2,50
-    adm_percent: 0.035,
+    adm_percent: 0.0352,
     transacao_fixa: 28,
   },
 } as const;
