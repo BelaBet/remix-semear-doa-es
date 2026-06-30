@@ -1738,7 +1738,7 @@ export function ChurchPageView({ tenantOverride }: { tenantOverride?: Tenant | n
               gap: 6,
             }}
           >
-            🔒 Página segura · Powered by TK2
+            🔒 Página segura · TicketConnect
           </p>
         </div>
       </section>
