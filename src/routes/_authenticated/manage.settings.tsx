@@ -30,7 +30,7 @@ type TenantRow = {
 };
 
 function SettingsPage() {
-  const { profile, refresh } = useAuth();
+  const { profile, refresh, isSuperAdmin } = useAuth();
   const [row, setRow] = useState<TenantRow | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -75,11 +75,16 @@ function SettingsPage() {
       setSaving(false);
       return toast.error(translateError(error));
     }
-    const { error: pErr } = await supabase
-      .from("tenant_payment_settings")
-      .upsert({ tenant_id: row.id, pix_key: row.pix_key, updated_at: new Date().toISOString() }, { onConflict: "tenant_id" });
+    if (isSuperAdmin) {
+      const { error: pErr } = await supabase
+        .from("tenant_payment_settings")
+        .upsert({ tenant_id: row.id, pix_key: row.pix_key, updated_at: new Date().toISOString() }, { onConflict: "tenant_id" });
+      if (pErr) {
+        setSaving(false);
+        return toast.error(translateError(pErr));
+      }
+    }
     setSaving(false);
-    if (pErr) return toast.error(translateError(pErr));
     toast.success("Configurações salvas");
     refresh();
   };
@@ -160,7 +165,13 @@ function SettingsPage() {
             value={row.pix_key ?? ""}
             onChange={(e) => setRow({ ...row, pix_key: e.target.value || null })}
             placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória"
+            disabled={!isSuperAdmin}
           />
+          {!isSuperAdmin && (
+            <p className="text-xs text-muted-foreground">
+              Este campo só pode ser editado pelo super administrador da plataforma.
+            </p>
+          )}
         </div>
       </Card>
 
