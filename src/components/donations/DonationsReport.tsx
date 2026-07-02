@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { jsPDF } from "jspdf";
+import ticketConnectLogo from "@/assets/ticketconnect-logo.jpg";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
@@ -49,11 +50,29 @@ function maskDocument(doc: string | null) {
   return doc;
 }
 
-function buildPdf(items: DonationReportItem[], periodStart: string, periodEnd: string, isPlatformAdmin: boolean, tenantLabel: string) {
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+async function buildPdf(items: DonationReportItem[], periodStart: string, periodEnd: string, isPlatformAdmin: boolean, tenantLabel: string) {
   const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
   const marginX = 32;
   let y = 40;
+
+  try {
+    const logo = await loadImage(ticketConnectLogo);
+    const logoHeight = 26;
+    const logoWidth = (logo.width / logo.height) * logoHeight;
+    doc.addImage(logo, "JPEG", pageWidth - marginX - logoWidth, 24, logoWidth, logoHeight);
+  } catch {
+    // segue sem a logo se a imagem não carregar por algum motivo
+  }
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(14);
@@ -83,7 +102,7 @@ function buildPdf(items: DonationReportItem[], periodStart: string, periodEnd: s
         { key: "donorEmail", label: "E-mail", width: 110 },
         { key: "paymentMethod", label: "Pagamento", width: 65 },
         { key: "donationAmountCents", label: "Valor da Doação", width: 75 },
-        { key: "adminFeeCents", label: "Taxa Adm.", width: 65 },
+        { key: "adminFeeCents", label: "Taxa", width: 65 },
       ]
     : [
         { key: "createdAt", label: "Data", width: 60 },
@@ -93,7 +112,7 @@ function buildPdf(items: DonationReportItem[], periodStart: string, periodEnd: s
         { key: "donorEmail", label: "E-mail", width: 150 },
         { key: "paymentMethod", label: "Pagamento", width: 80 },
         { key: "donationAmountCents", label: "Valor da Doação", width: 100 },
-        { key: "adminFeeCents", label: "Taxa Adm.", width: 90 },
+        { key: "adminFeeCents", label: "Taxa", width: 90 },
       ];
 
   const rowHeight = 16;
@@ -170,6 +189,7 @@ function buildPdf(items: DonationReportItem[], periodStart: string, periodEnd: s
 export function DonationsReport({ showTenantFilter = true }: { showTenantFilter?: boolean } = {}) {
   const [period, setPeriod] = useState(currentMonthRange);
   const [tenantFilter, setTenantFilter] = useState<string>("all");
+  const [generatingPdf, setGeneratingPdf] = useState(false);
 
   const reportFn = useServerFn(getDonationsReport);
   const tenantsFn = useServerFn(getTenantOptions);
@@ -254,12 +274,19 @@ export function DonationsReport({ showTenantFilter = true }: { showTenantFilter?
           </div>
         )}
         <Button
-          onClick={() => buildPdf(items, period.periodStart, period.periodEnd, isPlatformAdmin, tenantLabel)}
-          disabled={items.length === 0}
+          onClick={async () => {
+            setGeneratingPdf(true);
+            try {
+              await buildPdf(items, period.periodStart, period.periodEnd, isPlatformAdmin, tenantLabel);
+            } finally {
+              setGeneratingPdf(false);
+            }
+          }}
+          disabled={items.length === 0 || generatingPdf}
           className="gap-2"
         >
           <Download className="h-4 w-4" />
-          Baixar PDF
+          {generatingPdf ? "Gerando..." : "Baixar PDF"}
         </Button>
       </div>
 
@@ -303,7 +330,7 @@ export function DonationsReport({ showTenantFilter = true }: { showTenantFilter?
                     <TableHead>Contato</TableHead>
                     <TableHead>Pagamento</TableHead>
                     <TableHead className="text-right">Valor da Doação</TableHead>
-                    <TableHead className="text-right">Taxa Adm.</TableHead>
+                    <TableHead className="text-right">Taxa</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
