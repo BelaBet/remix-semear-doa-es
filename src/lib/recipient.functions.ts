@@ -363,8 +363,12 @@ export const getRecipientPayments = createServerFn({ method: "POST" })
     const tenantId = (profile as { tenant_id?: string } | null)?.tenant_id;
     if (!tenantId) throw new Error("Tenant não encontrado");
 
+    // NOTA: a view payments_staff foi removida na migration
+    // 20260612172845 (substituída por GRANT de coluna direto na tabela).
+    // As colunas abaixo já constam no GRANT SELECT para 'authenticated'
+    // em public.payments, então a query direta funciona sob RLS normal.
     const { data: rows, error } = await ctx.supabase
-      .from("payments_staff" as never)
+      .from("payments")
       .select("id, donation_amount, method, card_brand, status, created_at")
       .eq("tenant_id", tenantId)
       .gte("created_at", `${data.periodStart}T00:00:00.000Z`)

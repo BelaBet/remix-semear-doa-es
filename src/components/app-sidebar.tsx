@@ -33,6 +33,7 @@ import { initials } from "@/lib/utils";
 const MANAGE_ITEMS = [
   { title: "Dashboard", url: "/manage/dashboard", icon: LayoutDashboard },
   { title: "Doações", url: "/manage/donations", icon: HeartHandshake },
+  { title: "Relatórios", url: "/manage/relatorios", icon: ScrollText },
   { title: "Instituições", url: "/manage/members", icon: Users },
   { title: "Eventos", url: "/manage/events", icon: Calendar },
   { title: "Mensagens", url: "/messages", icon: Megaphone },
@@ -43,6 +44,7 @@ const PLATFORM_ITEMS = [
   { title: "Dashboard", url: "/admin/dashboard", icon: LayoutDashboard },
   { title: "Igrejas", url: "/admin/tenants", icon: Building2 },
   { title: "Doações", url: "/admin/donations", icon: HeartHandshake },
+  { title: "Relatórios", url: "/admin/relatorios", icon: ScrollText },
   { title: "Financeiro", url: "/admin/financeiro", icon: Wallet },
   { title: "Plataforma", url: "/admin/settings", icon: Settings },
 ];

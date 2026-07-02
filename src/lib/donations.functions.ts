@@ -139,8 +139,12 @@ export const getDonationsList = createServerFn({ method: "POST" })
       { donor_name: string | null; gross_amount: number | null; net_amount: number | null }
     >();
     if (donationIds.length > 0) {
+      // NOTA: a view donations_staff foi removida na migration
+      // 20260612172845 (substituída por GRANT de coluna direto na tabela).
+      // supabaseAdmin usa service_role, que ignora RLS/GRANTs de coluna,
+      // então consultamos a tabela base diretamente.
       const { data: dons } = await supabaseAdmin
-        .from("donations_staff" as never)
+        .from("donations")
         .select("id, donor_name, gross_amount, net_amount")
         .in("id", donationIds);
       for (const d of (dons ?? []) as {
@@ -276,8 +280,9 @@ export const getDonationDetail = createServerFn({ method: "POST" })
     let netAmountCents: number | null = r.donation_amount; // fallback quando não há donation
     let adminFeeCents: number | null = null;
     if (r.reference_id) {
+      // ver nota em getDonationsList sobre a remoção da view donations_staff
       const { data: donation } = await supabaseAdmin
-        .from("donations_staff" as never)
+        .from("donations")
         .select("donor_name, donor_email, donor_phone, gross_amount, net_amount, admin_fee")
         .eq("id", r.reference_id)
         .maybeSingle();
@@ -333,6 +338,114 @@ export const getDonationDetail = createServerFn({ method: "POST" })
       isPlatformAdmin: access.isPlatformAdmin,
     };
     return detail;
+  });
+
+export type DonationReportItem = {
+  id: string;
+  donorName: string | null;
+  donorDocument: string | null;
+  donorPhone: string | null;
+  donorEmail: string | null;
+  paymentMethod: string | null;
+  installments: number | null;
+  cardBrand: string | null;
+  grossAmountCents: number; // "Valor da doação"
+  adminFeeCents: number; // "Taxa de administração" (já consolidada)
+  tenantName: string | null; // só preenchido para super admin
+  createdAt: string;
+};
+
+/**
+ * Relatório completo de doações (PDF). Traz todas as informações captadas
+ * no momento do pagamento, e só dois valores monetários por doação:
+ * valor da doação (bruto) e taxa de administração — já consolidada em
+ * uma única taxa (soma de adquirente + operacional TK2 + fixa por
+ * transação), calculada em computeFees() no momento da cobrança.
+ */
+export const getDonationsReport = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (d: { periodStart: string; periodEnd: string; tenantId?: string }) =>
+      z
+        .object({
+          periodStart: z.string().min(8),
+          periodEnd: z.string().min(8),
+          tenantId: z.string().uuid().optional(),
+        })
+        .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const ctx = context as unknown as Ctx;
+    const access = await resolveAccess(ctx);
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Consulta a tabela base diretamente (a view donations_staff foi
+    // removida e nunca recriada — ver nota em getDonationsList).
+    let query = supabaseAdmin
+      .from("donations")
+      .select(
+        "id, tenant_id, donor_name, donor_document, donor_phone, donor_email, payment_method, installments, card_brand, gross_amount, admin_fee, created_at",
+      )
+      .is("deleted_at", null)
+      .gte("created_at", `${data.periodStart}T00:00:00.000Z`)
+      .lte("created_at", `${data.periodEnd}T23:59:59.999Z`)
+      .order("created_at", { ascending: false });
+
+    if (!access.isPlatformAdmin) {
+      query = query.eq("tenant_id", access.tenantId as string);
+    } else if (data.tenantId) {
+      query = query.eq("tenant_id", data.tenantId);
+    }
+
+    const { data: rows, error } = await query;
+    if (error) throw new Error(error.message);
+
+    type Row = {
+      id: string;
+      tenant_id: string;
+      donor_name: string | null;
+      donor_document: string | null;
+      donor_phone: string | null;
+      donor_email: string | null;
+      payment_method: string | null;
+      installments: number | null;
+      card_brand: string | null;
+      gross_amount: number | null;
+      admin_fee: number | null;
+      created_at: string;
+    };
+    const donations = (rows ?? []) as Row[];
+
+    const tenantNameById = new Map<string, string>();
+    if (access.isPlatformAdmin) {
+      const tenantIds = [...new Set(donations.map((d) => d.tenant_id))];
+      if (tenantIds.length > 0) {
+        const { data: tenants } = await supabaseAdmin
+          .from("tenants")
+          .select("id, name")
+          .in("id", tenantIds);
+        for (const t of (tenants ?? []) as { id: string; name: string }[])
+          tenantNameById.set(t.id, t.name);
+      }
+    }
+
+    const items: DonationReportItem[] = donations.map((d) => ({
+      id: d.id,
+      donorName: d.donor_name,
+      donorDocument: d.donor_document,
+      donorPhone: d.donor_phone,
+      donorEmail: d.donor_email,
+      paymentMethod: d.payment_method,
+      installments: d.installments,
+      cardBrand: d.card_brand,
+      grossAmountCents: d.gross_amount ?? 0,
+      adminFeeCents: d.admin_fee ?? 0,
+      tenantName: access.isPlatformAdmin ? (tenantNameById.get(d.tenant_id) ?? null) : null,
+      createdAt: d.created_at,
+    }));
+
+    return { items, isPlatformAdmin: access.isPlatformAdmin };
   });
 
 export type TenantOption = { id: string; name: string };

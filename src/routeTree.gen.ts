@@ -32,6 +32,7 @@ import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authe
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as ApiPublicCreateDonationRouteImport } from './routes/api/public/create-donation'
 import { Route as AuthenticatedManageSettingsRouteImport } from './routes/_authenticated/manage.settings'
+import { Route as AuthenticatedManageRelatoriosRouteImport } from './routes/_authenticated/manage.relatorios'
 import { Route as AuthenticatedManageMembersRouteImport } from './routes/_authenticated/manage.members'
 import { Route as AuthenticatedManageEventsRouteImport } from './routes/_authenticated/manage.events'
 import { Route as AuthenticatedManageDonationsRouteImport } from './routes/_authenticated/manage.donations'
@@ -41,6 +42,7 @@ import { Route as AuthenticatedIgrejasNovaRouteImport } from './routes/_authenti
 import { Route as AuthenticatedDashboardFinanceiroRouteImport } from './routes/_authenticated/dashboard.financeiro'
 import { Route as AuthenticatedAdminTenantsRouteImport } from './routes/_authenticated/admin.tenants'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin.settings'
+import { Route as AuthenticatedAdminRelatoriosRouteImport } from './routes/_authenticated/admin.relatorios'
 import { Route as AuthenticatedAdminPendenciasRouteImport } from './routes/_authenticated/admin.pendencias'
 import { Route as AuthenticatedAdminFinanceiroRouteImport } from './routes/_authenticated/admin.financeiro'
 import { Route as AuthenticatedAdminDonationsRouteImport } from './routes/_authenticated/admin.donations'
@@ -168,6 +170,12 @@ const AuthenticatedManageSettingsRoute =
     path: '/settings',
     getParentRoute: () => AuthenticatedManageRoute,
   } as any)
+const AuthenticatedManageRelatoriosRoute =
+  AuthenticatedManageRelatoriosRouteImport.update({
+    id: '/relatorios',
+    path: '/relatorios',
+    getParentRoute: () => AuthenticatedManageRoute,
+  } as any)
 const AuthenticatedManageMembersRoute =
   AuthenticatedManageMembersRouteImport.update({
     id: '/members',
@@ -220,6 +228,12 @@ const AuthenticatedAdminSettingsRoute =
   AuthenticatedAdminSettingsRouteImport.update({
     id: '/settings',
     path: '/settings',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminRelatoriosRoute =
+  AuthenticatedAdminRelatoriosRouteImport.update({
+    id: '/relatorios',
+    path: '/relatorios',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminPendenciasRoute =
@@ -287,6 +301,7 @@ export interface FileRoutesByFullPath {
   '/admin/donations': typeof AuthenticatedAdminDonationsRoute
   '/admin/financeiro': typeof AuthenticatedAdminFinanceiroRoute
   '/admin/pendencias': typeof AuthenticatedAdminPendenciasRoute
+  '/admin/relatorios': typeof AuthenticatedAdminRelatoriosRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/tenants': typeof AuthenticatedAdminTenantsRoute
   '/dashboard/financeiro': typeof AuthenticatedDashboardFinanceiroRoute
@@ -296,6 +311,7 @@ export interface FileRoutesByFullPath {
   '/manage/donations': typeof AuthenticatedManageDonationsRoute
   '/manage/events': typeof AuthenticatedManageEventsRoute
   '/manage/members': typeof AuthenticatedManageMembersRoute
+  '/manage/relatorios': typeof AuthenticatedManageRelatoriosRoute
   '/manage/settings': typeof AuthenticatedManageSettingsRoute
   '/api/public/create-donation': typeof ApiPublicCreateDonationRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
@@ -324,6 +340,7 @@ export interface FileRoutesByTo {
   '/admin/donations': typeof AuthenticatedAdminDonationsRoute
   '/admin/financeiro': typeof AuthenticatedAdminFinanceiroRoute
   '/admin/pendencias': typeof AuthenticatedAdminPendenciasRoute
+  '/admin/relatorios': typeof AuthenticatedAdminRelatoriosRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/tenants': typeof AuthenticatedAdminTenantsRoute
   '/dashboard/financeiro': typeof AuthenticatedDashboardFinanceiroRoute
@@ -333,6 +350,7 @@ export interface FileRoutesByTo {
   '/manage/donations': typeof AuthenticatedManageDonationsRoute
   '/manage/events': typeof AuthenticatedManageEventsRoute
   '/manage/members': typeof AuthenticatedManageMembersRoute
+  '/manage/relatorios': typeof AuthenticatedManageRelatoriosRoute
   '/manage/settings': typeof AuthenticatedManageSettingsRoute
   '/api/public/create-donation': typeof ApiPublicCreateDonationRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
@@ -366,6 +384,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/donations': typeof AuthenticatedAdminDonationsRoute
   '/_authenticated/admin/financeiro': typeof AuthenticatedAdminFinanceiroRoute
   '/_authenticated/admin/pendencias': typeof AuthenticatedAdminPendenciasRoute
+  '/_authenticated/admin/relatorios': typeof AuthenticatedAdminRelatoriosRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/admin/tenants': typeof AuthenticatedAdminTenantsRoute
   '/_authenticated/dashboard/financeiro': typeof AuthenticatedDashboardFinanceiroRoute
@@ -375,6 +394,7 @@ export interface FileRoutesById {
   '/_authenticated/manage/donations': typeof AuthenticatedManageDonationsRoute
   '/_authenticated/manage/events': typeof AuthenticatedManageEventsRoute
   '/_authenticated/manage/members': typeof AuthenticatedManageMembersRoute
+  '/_authenticated/manage/relatorios': typeof AuthenticatedManageRelatoriosRoute
   '/_authenticated/manage/settings': typeof AuthenticatedManageSettingsRoute
   '/api/public/create-donation': typeof ApiPublicCreateDonationRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
@@ -408,6 +428,7 @@ export interface FileRouteTypes {
     | '/admin/donations'
     | '/admin/financeiro'
     | '/admin/pendencias'
+    | '/admin/relatorios'
     | '/admin/settings'
     | '/admin/tenants'
     | '/dashboard/financeiro'
@@ -417,6 +438,7 @@ export interface FileRouteTypes {
     | '/manage/donations'
     | '/manage/events'
     | '/manage/members'
+    | '/manage/relatorios'
     | '/manage/settings'
     | '/api/public/create-donation'
     | '/admin/'
@@ -445,6 +467,7 @@ export interface FileRouteTypes {
     | '/admin/donations'
     | '/admin/financeiro'
     | '/admin/pendencias'
+    | '/admin/relatorios'
     | '/admin/settings'
     | '/admin/tenants'
     | '/dashboard/financeiro'
@@ -454,6 +477,7 @@ export interface FileRouteTypes {
     | '/manage/donations'
     | '/manage/events'
     | '/manage/members'
+    | '/manage/relatorios'
     | '/manage/settings'
     | '/api/public/create-donation'
     | '/admin'
@@ -486,6 +510,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/donations'
     | '/_authenticated/admin/financeiro'
     | '/_authenticated/admin/pendencias'
+    | '/_authenticated/admin/relatorios'
     | '/_authenticated/admin/settings'
     | '/_authenticated/admin/tenants'
     | '/_authenticated/dashboard/financeiro'
@@ -495,6 +520,7 @@ export interface FileRouteTypes {
     | '/_authenticated/manage/donations'
     | '/_authenticated/manage/events'
     | '/_authenticated/manage/members'
+    | '/_authenticated/manage/relatorios'
     | '/_authenticated/manage/settings'
     | '/api/public/create-donation'
     | '/_authenticated/admin/'
@@ -680,6 +706,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedManageSettingsRouteImport
       parentRoute: typeof AuthenticatedManageRoute
     }
+    '/_authenticated/manage/relatorios': {
+      id: '/_authenticated/manage/relatorios'
+      path: '/relatorios'
+      fullPath: '/manage/relatorios'
+      preLoaderRoute: typeof AuthenticatedManageRelatoriosRouteImport
+      parentRoute: typeof AuthenticatedManageRoute
+    }
     '/_authenticated/manage/members': {
       id: '/_authenticated/manage/members'
       path: '/members'
@@ -743,6 +776,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminSettingsRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/relatorios': {
+      id: '/_authenticated/admin/relatorios'
+      path: '/relatorios'
+      fullPath: '/admin/relatorios'
+      preLoaderRoute: typeof AuthenticatedAdminRelatoriosRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/pendencias': {
       id: '/_authenticated/admin/pendencias'
       path: '/pendencias'
@@ -802,6 +842,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminDonationsRoute: typeof AuthenticatedAdminDonationsRoute
   AuthenticatedAdminFinanceiroRoute: typeof AuthenticatedAdminFinanceiroRoute
   AuthenticatedAdminPendenciasRoute: typeof AuthenticatedAdminPendenciasRoute
+  AuthenticatedAdminRelatoriosRoute: typeof AuthenticatedAdminRelatoriosRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminTenantsRoute: typeof AuthenticatedAdminTenantsRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
@@ -814,6 +855,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminDonationsRoute: AuthenticatedAdminDonationsRoute,
   AuthenticatedAdminFinanceiroRoute: AuthenticatedAdminFinanceiroRoute,
   AuthenticatedAdminPendenciasRoute: AuthenticatedAdminPendenciasRoute,
+  AuthenticatedAdminRelatoriosRoute: AuthenticatedAdminRelatoriosRoute,
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
   AuthenticatedAdminTenantsRoute: AuthenticatedAdminTenantsRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
@@ -844,6 +886,7 @@ interface AuthenticatedManageRouteChildren {
   AuthenticatedManageDonationsRoute: typeof AuthenticatedManageDonationsRoute
   AuthenticatedManageEventsRoute: typeof AuthenticatedManageEventsRoute
   AuthenticatedManageMembersRoute: typeof AuthenticatedManageMembersRoute
+  AuthenticatedManageRelatoriosRoute: typeof AuthenticatedManageRelatoriosRoute
   AuthenticatedManageSettingsRoute: typeof AuthenticatedManageSettingsRoute
   AuthenticatedManageIndexRoute: typeof AuthenticatedManageIndexRoute
 }
@@ -853,6 +896,7 @@ const AuthenticatedManageRouteChildren: AuthenticatedManageRouteChildren = {
   AuthenticatedManageDonationsRoute: AuthenticatedManageDonationsRoute,
   AuthenticatedManageEventsRoute: AuthenticatedManageEventsRoute,
   AuthenticatedManageMembersRoute: AuthenticatedManageMembersRoute,
+  AuthenticatedManageRelatoriosRoute: AuthenticatedManageRelatoriosRoute,
   AuthenticatedManageSettingsRoute: AuthenticatedManageSettingsRoute,
   AuthenticatedManageIndexRoute: AuthenticatedManageIndexRoute,
 }
@@ -909,3 +953,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
