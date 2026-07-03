@@ -157,23 +157,22 @@ function SettingsPage() {
         </div>
       </Card>
 
-      <Card className="space-y-5 p-6">
-        <h2 className="font-medium">Pagamentos</h2>
-        <div className="grid gap-2">
-          <Label>Chave PIX</Label>
-          <Input
-            value={row.pix_key ?? ""}
-            onChange={(e) => setRow({ ...row, pix_key: e.target.value || null })}
-            placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória"
-            disabled={!isSuperAdmin}
-          />
-          {!isSuperAdmin && (
+      {isSuperAdmin && (
+        <Card className="space-y-5 p-6">
+          <h2 className="font-medium">Pagamentos</h2>
+          <div className="grid gap-2">
+            <Label>Chave PIX</Label>
+            <Input
+              value={row.pix_key ?? ""}
+              onChange={(e) => setRow({ ...row, pix_key: e.target.value || null })}
+              placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória"
+            />
             <p className="text-xs text-muted-foreground">
-              Este campo só pode ser editado pelo super administrador da plataforma.
+              Visível somente para o super administrador da plataforma.
             </p>
-          )}
-        </div>
-      </Card>
+          </div>
+        </Card>
+      )}
 
       <CostCentersAdminPanel />
 
