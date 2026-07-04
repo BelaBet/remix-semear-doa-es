@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.grant_super_admin_seed() FROM PUBLIC, anon, authenticated;
