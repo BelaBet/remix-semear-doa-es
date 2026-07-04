@@ -809,6 +809,8 @@ type CostCenterOpt = {
   max_installments: number;
 } | null;
 
+const AMOUNT_PRESETS = [25, 50, 100];
+
 function PaymentsQuickActions({
   primary,
   accent,
@@ -820,35 +822,107 @@ function PaymentsQuickActions({
   pixKey: string;
   costCenter?: CostCenterOpt;
 }) {
-  // contribKey = método cujo modal de valor está aberto
-  // methodOpen = método cujo dialog específico (Pix/Boleto/...) está aberto, após confirmar o valor
-  const [contribKey, setContribKey] = useState<ActionKey | null>(null);
-  const [methodOpen, setMethodOpen] = useState<ActionKey | null>(null);
-  const [selectedAmount, setSelectedAmount] = useState<string>("");
-  const contribLabel = QUICK_ACTIONS.find((a) => a.key === contribKey)?.label ?? "";
+  void pixKey; // mantido na assinatura por compatibilidade com PixDialog legado (não usado no fluxo atual)
+  const [selectedPreset, setSelectedPreset] = useState<number | "custom">(25);
+  const [amount, setAmount] = useState<string>("25");
+  const [selectedMethod, setSelectedMethod] = useState<ActionKey | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const amountInputRef = useRef<HTMLInputElement>(null);
+
+  const pickPreset = (v: number) => {
+    setSelectedPreset(v);
+    setAmount(String(v));
+  };
+  const pickCustomAmount = () => {
+    setSelectedPreset("custom");
+    setAmount("");
+    setTimeout(() => amountInputRef.current?.focus(), 0);
+  };
+  const handleAmountInput = (raw: string) => {
+    const cleaned = raw.replace(/[^\d]/g, "");
+    setAmount(cleaned);
+    const num = Number(cleaned);
+    setSelectedPreset(AMOUNT_PRESETS.includes(num) ? num : "custom");
+  };
+
+  const numericAmount = Number(amount);
+  const canContinue = numericAmount > 0 && selectedMethod !== null;
+  const selectedMethodLabel = QUICK_ACTIONS.find((a) => a.key === selectedMethod)?.label ?? "";
 
   return (
     <>
       <div className="rounded-2xl border bg-white p-5 shadow-sm sm:p-6" style={{ borderColor: `${primary}1a` }}>
-        <div className="grid grid-cols-3 gap-3 sm:gap-6">
+        {/* ── 1. Valor ─────────────────────────────────────────────── */}
+        <div className="flex items-center rounded-xl border-2 px-4 py-3" style={{ borderColor: primary }}>
+          <span className="text-xl font-semibold" style={{ color: primary }}>
+            R$
+          </span>
+          <input
+            ref={amountInputRef}
+            inputMode="numeric"
+            value={amount}
+            onChange={(e) => handleAmountInput(e.target.value)}
+            placeholder="0"
+            className="ml-2 w-full bg-transparent text-2xl font-bold outline-none"
+            style={{ color: primary }}
+          />
+        </div>
+
+        <div className="mt-3 grid grid-cols-4 gap-2">
+          {AMOUNT_PRESETS.map((v) => {
+            const active = selectedPreset === v;
+            return (
+              <button
+                key={v}
+                type="button"
+                onClick={() => pickPreset(v)}
+                className="rounded-lg border px-2 py-2 text-sm font-semibold transition"
+                style={
+                  active
+                    ? { borderColor: primary, background: primary, color: "#fff" }
+                    : { borderColor: "#E5E7EB", background: "#fff", color: "#111827" }
+                }
+              >
+                R${v}
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            onClick={pickCustomAmount}
+            className="rounded-lg border px-2 py-2 text-xs font-semibold transition"
+            style={
+              selectedPreset === "custom"
+                ? { borderColor: primary, background: primary, color: "#fff" }
+                : { borderColor: "#E5E7EB", background: "#fff", color: "#111827" }
+            }
+          >
+            Outro
+          </button>
+        </div>
+
+        {/* ── 2. Forma de pagamento ────────────────────────────────── */}
+        <div className="mt-5 grid grid-cols-3 gap-3 sm:gap-6">
           {QUICK_ACTIONS.map((a) => {
             const Icon = a.icon;
+            const active = selectedMethod === a.key;
             return (
               <button
                 key={a.key}
                 type="button"
-                onClick={() => setContribKey(a.key)}
+                onClick={() => setSelectedMethod(a.key)}
                 className="group flex flex-col items-center gap-2 rounded-xl p-1 text-center outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
                 style={{ ["--tw-ring-color" as string]: accent }}
               >
                 <span
                   className={cn(
-                    "flex h-[72px] w-[72px] items-center justify-center rounded-full shadow-sm transition-all duration-200",
-                    "group-hover:scale-105 group-hover:shadow-md group-active:scale-95 sm:h-24 sm:w-24",
+                    "flex h-[60px] w-[60px] items-center justify-center rounded-full shadow-sm transition-all duration-200",
+                    "group-hover:scale-105 group-hover:shadow-md group-active:scale-95 sm:h-20 sm:w-20",
                     a.tint,
                   )}
+                  style={active ? { outline: `2.5px solid ${primary}`, outlineOffset: 2 } : undefined}
                 >
-                  <Icon className="!h-7 !w-7 sm:!h-8 sm:!w-8" />
+                  <Icon className="!h-6 !w-6 sm:!h-7 sm:!w-7" />
                 </span>
                 <span className="text-xs font-medium sm:text-sm" style={{ color: primary }}>
                   {a.label}
@@ -857,42 +931,26 @@ function PaymentsQuickActions({
             );
           })}
         </div>
+
+        {/* ── 3. Confirmar ─────────────────────────────────────────── */}
+        <button
+          type="button"
+          disabled={!canContinue}
+          onClick={() => setModalOpen(true)}
+          className="mt-5 flex h-[48px] w-full items-center justify-center rounded-full text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-40"
+          style={{ background: primary }}
+        >
+          Continuar
+        </button>
       </div>
 
-      {/* Modal de seleção de valor — personalizado por método */}
       <ContribuicaoModal
-        isOpen={contribKey !== null}
-        onClose={() => setContribKey(null)}
-        method={contribKey ? { key: contribKey, label: contribLabel } : undefined}
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        method={selectedMethod ? { key: selectedMethod, label: selectedMethodLabel } : undefined}
         costCenter={costCenter ?? null}
-        onConfirm={(valor) => {
-          const k = contribKey;
-          setSelectedAmount(String(valor));
-          if (k === "boleto" || k === "pix") {
-            // O próprio ContribuicaoModal já exibe o boleto gerado — sem 2º modal.
-            toast.success(`Valor selecionado: R$${valor}`);
-            return;
-          }
-          if (k === "fatura") {
-            return;
-          }
-          setContribKey(null);
-          if (k) {
-            toast.success(`Valor selecionado: R$${valor}`);
-            setMethodOpen(k);
-          }
-        }}
+        initialAmount={numericAmount}
       />
-
-      <PixDialog
-        open={methodOpen === "pix"}
-        onClose={() => setMethodOpen(null)}
-        pixKey={pixKey}
-        primary={primary}
-        initialAmount={selectedAmount}
-      />
-      <FaturaDialog open={methodOpen === "fatura"} onClose={() => setMethodOpen(null)} primary={primary} />
-      <MaisDialog open={methodOpen === "mais"} onClose={() => setMethodOpen(null)} onPick={(k) => setMethodOpen(k)} />
     </>
   );
 }
@@ -1360,54 +1418,35 @@ export function ChurchPageView({ tenantOverride }: { tenantOverride?: Tenant | n
     <div
       style={{
         fontFamily: "'DM Sans', system-ui, sans-serif",
-        background: "#fafaf7",
-        color: "#1a1a1a",
+        background: "#fff",
+        color: "#111827",
         minHeight: "100vh",
       }}
     >
-      {/* Google Fonts */}
+      {/* Google Fonts — fonte única, sem serifada decorativa */}
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=DM+Sans:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
         * { box-sizing: border-box; }
-
-        @keyframes fadeUp {
-          from { opacity: 0; transform: translateY(24px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes pulse-ring {
-          0%   { transform: scale(1);   opacity: 0.6; }
-          100% { transform: scale(1.6); opacity: 0; }
-        }
-        @keyframes shimmer {
-          0%   { background-position: -200% center; }
-          100% { background-position: 200% center; }
-        }
-        .fade-up { animation: fadeUp 0.7s ease both; }
-        .fade-up-2 { animation: fadeUp 0.7s 0.15s ease both; }
-        .fade-up-3 { animation: fadeUp 0.7s 0.3s ease both; }
-        .fade-up-4 { animation: fadeUp 0.7s 0.45s ease both; }
-
-        .copy-btn:hover { background: ${primary} !important; color: #fff !important; }
-        .donate-link:hover { opacity: 0.85; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .fade-in { animation: fadeIn 0.4s ease both; }
         ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-thumb { background: ${accent}; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
       `}</style>
 
-      {/* Sticky top bar */}
+      {/* ── TOP BAR ────────────────────────────────────────────────────── */}
       <div
         style={{
           position: "sticky",
           top: 0,
           zIndex: 50,
-          background: scrolled ? "rgba(255,255,255,0.92)" : "transparent",
-          backdropFilter: scrolled ? "blur(12px)" : "none",
-          borderBottom: scrolled ? "1px solid rgba(0,0,0,0.06)" : "1px solid transparent",
-          transition: "all .3s ease",
+          background: "#fff",
+          borderBottom: scrolled ? "1px solid #E5E7EB" : "1px solid transparent",
+          transition: "border-color .2s ease",
         }}
       >
         <div
           style={{
-            maxWidth: 1200,
+            maxWidth: 720,
             margin: "0 auto",
             padding: "14px 24px",
             display: "flex",
@@ -1418,15 +1457,15 @@ export function ChurchPageView({ tenantOverride }: { tenantOverride?: Tenant | n
           {CHURCH.logo && !logoError ? (
             <div
               style={{
-                width: 32,
-                height: 32,
+                width: 30,
+                height: 30,
                 borderRadius: 999,
-                background: "#fff",
+                overflow: "hidden",
+                flexShrink: 0,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                overflow: "hidden",
-                padding: 2,
+                background: "#F3F4F6",
               }}
             >
               <img
@@ -1439,264 +1478,206 @@ export function ChurchPageView({ tenantOverride }: { tenantOverride?: Tenant | n
           ) : (
             <div
               style={{
-                width: 32,
-                height: 32,
+                width: 30,
+                height: 30,
                 borderRadius: 999,
                 background: primary,
-                color: secondary || "#fff",
+                color: "#fff",
                 display: "grid",
                 placeItems: "center",
                 fontSize: 12,
                 fontWeight: 700,
+                flexShrink: 0,
               }}
             >
               {initials(CHURCH.name)}
             </div>
           )}
-
-          <span style={{ fontWeight: 600, color: scrolled ? "#1a1a1a" : "transparent", transition: "color .3s" }}>
-            {CHURCH.name}
-          </span>
-          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
-            <a
-              href="/login"
-              style={{
-                padding: "8px 16px",
-                borderRadius: 999,
-                fontSize: 13,
-                fontWeight: 600,
-                textDecoration: "none",
-                background: scrolled ? primary : "rgba(255,255,255,0.95)",
-                color: scrolled ? "#fff" : primary,
-                transition: "all .3s ease",
-                boxShadow: scrolled ? "none" : "0 2px 12px rgba(0,0,0,0.12)",
-              }}
-            >
+          <span style={{ fontWeight: 600, fontSize: 14, color: "#111827" }}>{CHURCH.name}</span>
+          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 16 }}>
+            <a href="/login" style={{ fontSize: 13, fontWeight: 500, color: "#6B7280", textDecoration: "none" }}>
               Entrar
             </a>
             <a
               href="/signup"
               style={{
-                padding: "8px 16px",
-                borderRadius: 999,
+                padding: "7px 14px",
+                borderRadius: 8,
                 fontSize: 13,
                 fontWeight: 600,
                 textDecoration: "none",
-                border: `1.5px solid ${scrolled ? primary : "rgba(255,255,255,0.7)"}`,
-                color: scrolled ? primary : "#fff",
-                transition: "all .3s ease",
+                background: primary,
+                color: "#fff",
               }}
             >
-              Cadastrar
+              Cadastrar igreja
             </a>
           </div>
         </div>
       </div>
 
-      {/* ── HERO / HEADER ──────────────────────────────────────────────── */}
+      {/* ── HERO ───────────────────────────────────────────────────────── */}
       <section
-        className="relative overflow-hidden px-6 pt-5 pb-6 text-center sm:px-6 sm:pt-20 sm:pb-24 max-h-[65vh] sm:max-h-none"
+        className="fade-in"
         style={{
-          background: `linear-gradient(135deg, ${primary} 0%, ${secondary} 100%)`,
-          color: "#fff",
+          maxWidth: 480,
+          margin: "0 auto",
+          padding: "56px 24px 40px",
+          textAlign: "center",
         }}
       >
-        {/* Decorative circles */}
-        <div
-          className="absolute -top-16 -right-16 w-36 h-36 sm:w-80 sm:h-80 sm:-top-30 sm:-right-30 rounded-full"
-          style={{ background: `${accent}22` }}
-        />
-        <div
-          className="absolute -bottom-20 -left-20 w-44 h-44 sm:w-96 sm:h-96 sm:-bottom-40 sm:-left-40 rounded-full"
-          style={{ background: `${accent}18` }}
-        />
-
-        <div className="fade-up relative mx-auto max-w-3xl flex flex-col items-center">
-          {/* Logo da empresa quando houver, sen\u00e3o iniciais */}
-          <div className="mb-1 sm:mb-6">
-            {CHURCH.logo && !logoError ? (
-              <div
-                className="mx-auto rounded-full w-11 h-11 sm:w-24 sm:h-24 bg-white flex items-center justify-center overflow-hidden p-1 sm:p-2"
-                style={{ border: `2px solid ${accent}` }}
-              >
-                <img
-                  src={CHURCH.logo}
-                  alt={CHURCH.name}
-                  onError={() => setLogoError(true)}
-                  style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
-                />
-              </div>
-            ) : (
-              <div
-                className="mx-auto grid place-items-center rounded-full w-11 h-11 sm:w-24 sm:h-24 text-sm sm:text-3xl font-extrabold"
-                style={{
-                  background: primary,
-                  color: secondary || "#fff",
-                  border: `2px solid ${accent}`,
-                }}
-              >
-                {initials(CHURCH.name)}
-              </div>
-            )}
-          </div>
-
-          {/* Church Name */}
-          <h1
-            className="sm:mb-4 leading-tight"
+        {CHURCH.logo && !logoError ? (
+          <div
             style={{
-              fontFamily: "'Playfair Display', Georgia, serif",
-              fontSize: "clamp(1.15rem, 5vw, 3.6rem)",
-              lineHeight: 1.05,
-              margin: 0,
+              width: 72,
+              height: 72,
+              margin: "0 auto 20px",
+              borderRadius: 999,
+              background: "#F9FAFB",
+              border: `1px solid #F0F0F0`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              overflow: "hidden",
+              padding: 6,
             }}
           >
-            {CHURCH.name}
-          </h1>
-          <p
-            className="font-light"
-            style={{ fontSize: "clamp(0.72rem, 2.2vw, 1.25rem)", opacity: 0.9, margin: "4px 0 0" }}
+            <img
+              src={CHURCH.logo}
+              alt={CHURCH.name}
+              onError={() => setLogoError(true)}
+              style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
+            />
+          </div>
+        ) : (
+          <div
+            style={{
+              width: 72,
+              height: 72,
+              margin: "0 auto 20px",
+              borderRadius: 999,
+              background: primary,
+              color: "#fff",
+              display: "grid",
+              placeItems: "center",
+              fontSize: 24,
+              fontWeight: 700,
+            }}
           >
-            {CHURCH.tagline}
-          </p>
+            {initials(CHURCH.name)}
+          </div>
+        )}
 
-          {/* Divider */}
-          <div className="mt-3 sm:mt-8" style={{ width: 40, height: 2, background: accent, borderRadius: 2 }} />
-        </div>
+        <h1
+          style={{
+            fontSize: "clamp(1.5rem, 4vw, 2rem)",
+            fontWeight: 700,
+            margin: 0,
+            color: "#111827",
+            letterSpacing: "-0.02em",
+          }}
+        >
+          {CHURCH.name}
+        </h1>
+        {CHURCH.tagline && (
+          <p style={{ fontSize: 14, color: "#6B7280", margin: "6px 0 0" }}>{CHURCH.tagline}</p>
+        )}
       </section>
 
-      {/* ── PAYMENTS HUB SECTION (fintech quick actions) ───────────────── */}
-      <section className="mx-auto max-w-[1100px] px-6 pt-6 pb-8 sm:py-20">
-        <div className="fade-up text-center mb-4 sm:mb-9">
-          <span
-            className="font-semibold"
-            style={{
-              fontSize: "clamp(0.6rem, 2vw, 0.75rem)",
-              letterSpacing: "0.18em",
-              color: accent,
-            }}
-          >
-            ✦ CONTRIBUA COM A OBRA
-          </span>
+      {/* ── CONTRIBUIÇÃO ───────────────────────────────────────────────── */}
+      <section className="fade-in" style={{ maxWidth: 480, margin: "0 auto", padding: "0 24px 48px" }}>
+        <div style={{ textAlign: "center", marginBottom: 20 }}>
           <h2
             style={{
-              fontFamily: "'Playfair Display', serif",
-              fontSize: "clamp(1.15rem, 4.5vw, 2.5rem)",
-              margin: "4px 0 2px",
-              lineHeight: 1.15,
-              color: primary,
+              fontSize: "clamp(1.1rem, 3vw, 1.375rem)",
+              fontWeight: 700,
+              margin: "0 0 4px",
+              color: "#111827",
             }}
           >
-            Escolha como deseja contribuir
+            Contribua com a igreja
           </h2>
-          <p
-            className="mx-auto"
-            style={{
-              color: "#666",
-              fontSize: "clamp(0.78rem, 2.2vw, 1rem)",
-              lineHeight: 1.4,
-              maxWidth: 620,
-              margin: "4px auto 0",
-            }}
-          >
-            Pagamentos rápidos, seguros e sem complicação.
+          <p style={{ fontSize: 13, color: "#6B7280", margin: 0 }}>
+            Pix, boleto ou cartão — rápido e seguro.
           </p>
         </div>
 
-        <div className="fade-up-2">
-          <PaymentsQuickActions
-            primary={primary}
-            accent={accent}
-            pixKey={PIX_KEY}
-            costCenter={selectedCostCenter ?? null}
-          />
-          {selectedCostCenter && (
-            <p className="mt-2 text-center text-xs text-muted-foreground">
-              Doação direcionada para <strong>{selectedCostCenter.name}</strong>.
-            </p>
-          )}
-        </div>
+        <PaymentsQuickActions
+          primary={primary}
+          accent={accent}
+          pixKey={PIX_KEY}
+          costCenter={selectedCostCenter ?? null}
+        />
+        {selectedCostCenter && (
+          <p style={{ marginTop: 10, textAlign: "center", fontSize: 12, color: "#6B7280" }}>
+            Doação direcionada para <strong>{selectedCostCenter.name}</strong>.
+          </p>
+        )}
 
         <div
-          className="fade-up-2"
           style={{
-            maxWidth: 620,
-            margin: "32px auto 0",
-            padding: "16px 20px",
+            marginTop: 20,
+            padding: "12px 16px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            gap: 10,
+            gap: 8,
             background: "#F9FAFB",
-            border: "1px solid #E5E7EB",
-            borderRadius: 12,
+            border: "1px solid #F0F0F0",
+            borderRadius: 10,
             color: "#6B7280",
-            fontSize: "0.85rem",
-            textAlign: "center",
+            fontSize: 12,
           }}
         >
-          <Lock size={16} strokeWidth={2.2} style={{ color: "#7C3AED", flexShrink: 0 }} />
-          <span>Pagamento 100% seguro · Dados criptografados · Confirmação por SMS</span>
+          <Lock size={14} strokeWidth={2.2} style={{ flexShrink: 0 }} />
+          <span>Pagamento seguro · Dados criptografados</span>
         </div>
       </section>
 
-      {/* ── QR CODE SECTION ─────────────────────────────────────────────── */}
-      <section style={{ padding: "60px 24px", background: "#fff", borderTop: "1px solid #f0f0f0" }}>
-        <div style={{ maxWidth: 480, margin: "0 auto", textAlign: "center" }}>
-          {/* Header */}
-          <span style={{ fontSize: 12, letterSpacing: "0.18em", color: accent, fontWeight: 600 }}>
-            ✦ QR CODE
-          </span>
-          <h2
-            style={{
-              fontFamily: "'Playfair Display', serif",
-              fontSize: "clamp(1.4rem, 3vw, 2rem)",
-              margin: "8px 0 4px",
-              color: primary,
-            }}
-          >
+      {/* ── QR CODE ────────────────────────────────────────────────────── */}
+      <section style={{ padding: "0 24px 48px", borderTop: "1px solid #F0F0F0" }}>
+        <div style={{ maxWidth: 380, margin: "0 auto", textAlign: "center", paddingTop: 48 }}>
+          <h3 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 4px", color: "#111827" }}>
             Doe pelo QR Code
-          </h2>
-          <p style={{ color: "#666", fontSize: 14, marginBottom: 32 }}>
-            Escaneie com a câmera do celular e contribua de onde estiver
+          </h3>
+          <p style={{ fontSize: 13, color: "#6B7280", margin: "0 0 24px" }}>
+            Escaneie com a câmera do celular
           </p>
 
-          {/* QR Code */}
           <div
             style={{
               display: "inline-flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: 16,
-              background: "#fafaf7",
-              border: `1px solid ${primary}22`,
-              borderRadius: 20,
-              padding: 32,
+              gap: 14,
+              background: "#F9FAFB",
+              border: "1px solid #F0F0F0",
+              borderRadius: 16,
+              padding: 24,
             }}
           >
             <div
               ref={qrRef}
               style={{
                 background: "#fff",
-                padding: 16,
-                borderRadius: 12,
-                boxShadow: "0 4px 24px rgba(0,0,0,0.08)",
+                padding: 14,
+                borderRadius: 10,
+                border: "1px solid #F0F0F0",
               }}
             >
               <QRCodeCanvas
                 value={typeof window !== "undefined" ? `${window.location.origin}/i/${tenant?.slug ?? ""}` : ""}
-                size={200}
+                size={176}
                 level="M"
                 includeMargin={false}
                 fgColor={primary}
               />
             </div>
 
-            {/* URL abaixo do QR */}
-            <p style={{ fontSize: 12, color: "#999", margin: 0 }}>
+            <p style={{ fontSize: 12, color: "#9CA3AF", margin: 0 }}>
               {typeof window !== "undefined" ? `${window.location.origin}/i/${tenant?.slug ?? ""}` : ""}
             </p>
 
-            {/* Botão download */}
             <button
               type="button"
               onClick={() => {
@@ -1711,8 +1692,8 @@ export function ChurchPageView({ tenantOverride }: { tenantOverride?: Tenant | n
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 8,
-                padding: "10px 20px",
+                gap: 6,
+                padding: "8px 16px",
                 borderRadius: 999,
                 border: `1.5px solid ${primary}`,
                 background: "transparent",
@@ -1722,49 +1703,25 @@ export function ChurchPageView({ tenantOverride }: { tenantOverride?: Tenant | n
                 cursor: "pointer",
               }}
             >
-              ⬇ Baixar QR Code
+              <Download size={14} />
+              Baixar QR Code
             </button>
           </div>
-
-          {/* Badge segurança */}
-          <p
-            style={{
-              marginTop: 16,
-              fontSize: 12,
-              color: "#999",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 6,
-            }}
-          >
-            🔒 Página segura · TicketConnect
-          </p>
         </div>
       </section>
 
-      {/* ── EVENTS SECTION ─────────────────────────────────────────────── */}
+      {/* ── EVENTOS ────────────────────────────────────────────────────── */}
       {eventsToRender.length > 0 && (
-        <section style={{ padding: "80px 24px", background: "#fff" }}>
-          <div className="fade-up-3" style={{ maxWidth: 1200, margin: "0 auto" }}>
-            {/* Section Header */}
-            <div style={{ textAlign: "center", marginBottom: 48 }}>
-              <span style={{ fontSize: 12, letterSpacing: 3, color: accent, fontWeight: 600 }}>✦ AGENDA</span>
-              <h2
-                style={{
-                  fontFamily: "'Playfair Display', serif",
-                  fontSize: "clamp(1.8rem, 4vw, 2.5rem)",
-                  margin: "12px 0 8px",
-                  color: primary,
-                }}
-              >
-                Próximos Eventos
+        <section style={{ padding: "0 24px 56px", borderTop: "1px solid #F0F0F0" }}>
+          <div style={{ maxWidth: 1000, margin: "0 auto", paddingTop: 48 }}>
+            <div style={{ textAlign: "center", marginBottom: 32 }}>
+              <h2 style={{ fontSize: "clamp(1.25rem, 3vw, 1.625rem)", fontWeight: 700, margin: "0 0 4px", color: "#111827" }}>
+                Próximos eventos
               </h2>
-              <p style={{ color: "#666", margin: 0 }}>Clique em qualquer evento para garantir sua participação.</p>
+              <p style={{ color: "#6B7280", margin: 0, fontSize: 14 }}>Clique em um evento para participar.</p>
             </div>
 
-            {/* Events Grid */}
-            <div style={{ display: "grid", gap: 24, gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))" }}>
+            <div style={{ display: "grid", gap: 20, gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
               {eventsToRender.map((event) => (
                 <EventCard key={event.id} event={event} accent={accent} primary={primary} />
               ))}
@@ -1773,20 +1730,20 @@ export function ChurchPageView({ tenantOverride }: { tenantOverride?: Tenant | n
         </section>
       )}
 
-      {/* ── FOOTER ─────────────────────────────────────────────────────── */}
-      <footer style={{ padding: "48px 24px", textAlign: "center", background: "#fafaf7", borderTop: "1px solid #eee" }}>
+      {/* ── RODAPÉ ─────────────────────────────────────────────────────── */}
+      <footer style={{ padding: "40px 24px", textAlign: "center", borderTop: "1px solid #F0F0F0" }}>
         {CHURCH.logo && !logoError ? (
           <div
             style={{
-              width: 48,
-              height: 48,
+              width: 40,
+              height: 40,
               borderRadius: 999,
-              background: "#fff",
+              background: "#F9FAFB",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               overflow: "hidden",
-              margin: "0 auto 12px",
+              margin: "0 auto 10px",
               padding: 4,
             }}
           >
@@ -1800,35 +1757,26 @@ export function ChurchPageView({ tenantOverride }: { tenantOverride?: Tenant | n
         ) : (
           <div
             style={{
-              width: 48,
-              height: 48,
+              width: 40,
+              height: 40,
               borderRadius: 999,
               background: primary,
-              color: secondary || "#fff",
+              color: "#fff",
               display: "grid",
               placeItems: "center",
-              margin: "0 auto 12px",
+              margin: "0 auto 10px",
               fontWeight: 700,
+              fontSize: 13,
             }}
           >
             {initials(CHURCH.name)}
           </div>
         )}
 
-        <p
-          style={{
-            fontFamily: "'Playfair Display', serif",
-            fontSize: 18,
-            color: primary,
-            margin: "0 0 4px",
-            fontWeight: 600,
-          }}
-        >
-          {CHURCH.name}
-        </p>
-        {CHURCH.tagline && <p style={{ fontSize: 12, color: "#666", margin: "0 0 16px" }}>{CHURCH.tagline}</p>}
-        <p style={{ fontSize: 11, color: "#999", margin: 0, letterSpacing: "0.04em" }}>
-          Tecnologia fornecida por <span style={{ color: "#666", fontWeight: 600 }}>TicketConnect</span>
+        <p style={{ fontSize: 14, fontWeight: 600, color: "#111827", margin: "0 0 2px" }}>{CHURCH.name}</p>
+        {CHURCH.tagline && <p style={{ fontSize: 12, color: "#6B7280", margin: "0 0 12px" }}>{CHURCH.tagline}</p>}
+        <p style={{ fontSize: 11, color: "#9CA3AF", margin: 0 }}>
+          Tecnologia fornecida por <span style={{ color: "#6B7280", fontWeight: 600 }}>TicketConnect</span>
         </p>
       </footer>
     </div>

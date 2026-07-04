@@ -31,6 +31,8 @@ type Props = {
   onConfirm?: (valor: number) => void;
   method?: ContribMethod;
   costCenter?: CostCenterOption | null;
+  /** Quando informado, o valor já foi escolhido antes de abrir o modal (fluxo valor → método). */
+  initialAmount?: number;
 };
 
 const PRESETS = [10, 25, 50, 100, 200];
@@ -144,7 +146,7 @@ function isValidDoc(raw: string) {
   return false;
 }
 
-export function ContribuicaoModal({ isOpen, onClose, onConfirm, method, costCenter }: Props) {
+export function ContribuicaoModal({ isOpen, onClose, onConfirm, method, costCenter, initialAmount }: Props) {
   const { tenant } = useTenant();
   const createBoleto = useServerFn(createBoletoPayment);
   const createPix = useServerFn(createPixPayment);
@@ -210,8 +212,9 @@ export function ContribuicaoModal({ isOpen, onClose, onConfirm, method, costCent
 
   useEffect(() => {
     if (isOpen) {
-      setSelected(25);
-      setValue("25");
+      const startAmount = initialAmount && initialAmount > 0 ? initialAmount : 25;
+      setSelected(PRESETS.includes(startAmount) ? startAmount : startAmount === 25 ? 25 : "custom");
+      setValue(String(startAmount));
       setPayerName("");
       setPayerEmail("");
       setPayerCpf("");
@@ -237,7 +240,7 @@ export function ContribuicaoModal({ isOpen, onClose, onConfirm, method, costCent
       setSubmitting(false);
       setError(null);
     }
-  }, [isOpen]);
+  }, [isOpen, initialAmount]);
 
   // Polling do PIX: quando temos gatewayId e ainda falta o QR Code (ou status pendente),
   // consultamos a Pagar.me a cada 3s até obter o código ou confirmação de pagamento.
@@ -888,57 +891,77 @@ export function ContribuicaoModal({ isOpen, onClose, onConfirm, method, costCent
           </>
         ) : (
           <>
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-[#EDE9FE] px-3 py-1 text-xs font-medium text-[#7C3AED]">
-              <Star className="h-3.5 w-3.5 fill-[#7C3AED]" />
-              Valor mais escolhido
-            </div>
+            {!initialAmount && (
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-[#EDE9FE] px-3 py-1 text-xs font-medium text-[#7C3AED]">
+                <Star className="h-3.5 w-3.5 fill-[#7C3AED]" />
+                Valor mais escolhido
+              </div>
+            )}
 
             <h2 className="mt-4 text-[28px] font-bold leading-tight text-[#111827]">{copy.title}</h2>
             <p className="mt-1 text-sm text-[#6B7280]">{copy.subtitle}</p>
 
-            <div className="mt-5 flex items-center rounded-xl border-2 border-[#7C3AED] px-4 py-3">
-              <span className="text-2xl font-semibold text-[#111827]">R$</span>
-              <input
-                ref={inputRef}
-                inputMode="numeric"
-                value={value}
-                onChange={(e) => handleInput(e.target.value)}
-                placeholder="0"
-                className="ml-2 w-full bg-transparent text-3xl font-bold text-[#7C3AED] outline-none placeholder:text-[#7C3AED]/30"
-              />
-            </div>
+            {initialAmount ? (
+              <div className="mt-5 flex items-center justify-between rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-4 py-3">
+                <div>
+                  <div className="text-xs font-medium uppercase tracking-wide text-[#6B7280]">
+                    Valor da contribuição
+                  </div>
+                  <div className="text-xl font-bold text-[#111827]">
+                    R$ {formatBRL(Math.round(Number(value) * 100))}
+                  </div>
+                </div>
+                <button type="button" onClick={onClose} className="text-xs font-semibold text-[#7C3AED] hover:underline">
+                  Alterar
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="mt-5 flex items-center rounded-xl border-2 border-[#7C3AED] px-4 py-3">
+                  <span className="text-2xl font-semibold text-[#111827]">R$</span>
+                  <input
+                    ref={inputRef}
+                    inputMode="numeric"
+                    value={value}
+                    onChange={(e) => handleInput(e.target.value)}
+                    placeholder="0"
+                    className="ml-2 w-full bg-transparent text-3xl font-bold text-[#7C3AED] outline-none placeholder:text-[#7C3AED]/30"
+                  />
+                </div>
 
-            <div className="mt-4 grid grid-cols-3 gap-2.5">
-              {PRESETS.map((v) => {
-                const active = selected === v;
-                return (
+                <div className="mt-4 grid grid-cols-3 gap-2.5">
+                  {PRESETS.map((v) => {
+                    const active = selected === v;
+                    return (
+                      <button
+                        key={v}
+                        onClick={() => pickPreset(v)}
+                        className={`flex flex-col items-center justify-center rounded-xl border px-2 py-3 text-sm font-semibold transition ${
+                          active
+                            ? "border-[#7C3AED] bg-[#7C3AED] text-white"
+                            : "border-[#E5E7EB] bg-white text-[#111827] hover:border-gray-300"
+                        }`}
+                      >
+                        <span>R${v}</span>
+                        {v === 25 && active && (
+                          <span className="mt-0.5 text-[10px] font-normal opacity-90">Mais escolhido</span>
+                        )}
+                      </button>
+                    );
+                  })}
                   <button
-                    key={v}
-                    onClick={() => pickPreset(v)}
-                    className={`flex flex-col items-center justify-center rounded-xl border px-2 py-3 text-sm font-semibold transition ${
-                      active
+                    onClick={pickCustom}
+                    className={`rounded-xl border px-2 py-3 text-sm font-semibold transition ${
+                      selected === "custom"
                         ? "border-[#7C3AED] bg-[#7C3AED] text-white"
                         : "border-[#E5E7EB] bg-white text-[#111827] hover:border-gray-300"
                     }`}
                   >
-                    <span>R${v}</span>
-                    {v === 25 && active && (
-                      <span className="mt-0.5 text-[10px] font-normal opacity-90">Mais escolhido</span>
-                    )}
+                    Outro valor
                   </button>
-                );
-              })}
-              <button
-                onClick={pickCustom}
-                className={`rounded-xl border px-2 py-3 text-sm font-semibold transition ${
-                  selected === "custom"
-                    ? "border-[#7C3AED] bg-[#7C3AED] text-white"
-                    : "border-[#E5E7EB] bg-white text-[#111827] hover:border-gray-300"
-                }`}
-              >
-                Outro valor
-              </button>
-            </div>
+                </div>
+              </>
+            )}
 
             {needsPayer && (
               <div className="mt-5 space-y-2.5">
