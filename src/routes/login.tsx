@@ -19,6 +19,7 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [magicLoading, setMagicLoading] = useState(false);
   const [emailConfirmed, setEmailConfirmed] = useState(false);
 
   useEffect(() => {
@@ -54,6 +55,22 @@ function LoginPage() {
     if (error) return toast.error(translateError(error));
     toast.success("Bem-vindo de volta!");
     navigate({ to: "/dashboard" });
+  };
+
+  const sendMagicLink = async () => {
+    const target = email.trim().toLowerCase();
+    if (!target) return toast.error("Informe seu e-mail primeiro.");
+    setMagicLoading(true);
+    const { error } = await supabase.auth.signInWithOtp({
+      email: target,
+      options: {
+        shouldCreateUser: false,
+        emailRedirectTo: `${window.location.origin}/dashboard`,
+      },
+    });
+    setMagicLoading(false);
+    if (error) return toast.error(translateError(error));
+    toast.success("Enviamos um link de acesso para seu e-mail.");
   };
 
   return (
@@ -105,6 +122,15 @@ function LoginPage() {
             {loading ? "Entrando..." : "Entrar"}
           </Button>
         </form>
+        <Button
+          type="button"
+          variant="outline"
+          className="mt-3 w-full"
+          onClick={sendMagicLink}
+          disabled={magicLoading}
+        >
+          {magicLoading ? "Enviando..." : "Entrar com link mágico (sem senha)"}
+        </Button>
         <div className="mt-4 text-center">
           <Link to="/forgot-password" className="text-sm text-muted-foreground hover:underline">Esqueci minha senha</Link>
         </div>
