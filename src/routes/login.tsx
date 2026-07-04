@@ -62,12 +62,12 @@ function LoginPage() {
         <Link to="/" className="mb-8 block text-sm text-muted-foreground hover:underline">← Voltar</Link>
         <div className="mb-6 flex justify-center">
           <img
-            src="/__l5e/assets-v1/64e1ae41-9cf7-45e3-ac17-3658b088a3df/ticketconnect-logo-long.jpeg"
-            alt="TicketConnect"
+            src="/__l5e/assets-v1/a23b8b52-0967-4d32-8a09-61a762e6777a/logo-semear.jpg"
+            alt="Semear"
             className="h-24 w-auto sm:h-28"
           />
         </div>
-        <h1 className="font-display text-3xl">Bem-Vindo a Ticketconnect</h1>
+        <h1 className="font-display text-3xl">Bem-Vindo a Semear</h1>
         <p className="mt-1 text-sm text-muted-foreground">Acesse sua conta.</p>
         {emailConfirmed && (
           <div className="mt-4 rounded-lg border border-primary/20 bg-primary/10 p-3 text-sm text-primary">

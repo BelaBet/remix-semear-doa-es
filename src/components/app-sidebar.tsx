@@ -68,8 +68,8 @@ export function AppSidebar() {
           {isPlatformAdmin ? (
             <>
               <img
-                src="/__l5e/assets-v1/64e1ae41-9cf7-45e3-ac17-3658b088a3df/ticketconnect-logo-long.jpeg"
-                alt="TicketConnect"
+                src="/__l5e/assets-v1/a23b8b52-0967-4d32-8a09-61a762e6777a/logo-semear.jpg"
+                alt="Semear"
                 className="h-6 w-auto rounded-sm"
               />
               {!collapsed && (

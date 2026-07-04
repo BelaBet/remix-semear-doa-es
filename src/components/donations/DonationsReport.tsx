@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { jsPDF } from "jspdf";
-import ticketConnectLogo from "@/assets/ticketconnect-logo.jpg";
+import logoSemear from "@/assets/logo-semear.jpg.asset.json";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
@@ -74,7 +74,7 @@ async function buildPdf(
   let y = 40;
 
   try {
-    const logo = await loadImage(ticketConnectLogo);
+    const logo = await loadImage(logoSemear.url);
     const logoHeight = 26;
     const logoWidth = (logo.width / logo.height) * logoHeight;
     doc.addImage(logo, "JPEG", pageWidth - marginX - logoWidth, 24, logoWidth, logoHeight);

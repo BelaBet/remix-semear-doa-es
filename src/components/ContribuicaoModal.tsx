@@ -704,7 +704,7 @@ export function ContribuicaoModal({ isOpen, onClose, onConfirm, method, costCent
         </button>
 
         <div className="mb-3 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6B7280]">
-          TicketConnect
+          Semear
         </div>
 
         {pix ? (

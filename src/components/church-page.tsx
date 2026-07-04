@@ -234,7 +234,7 @@ function TK2LandingPage() {
       <section id="planos" className="bg-white py-20">
         <div className="mx-auto max-w-3xl px-6 text-center">
           <h2 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">
-            Comece grátis. Cresça com a TicketConnect.
+            Comece grátis. Cresça com a Semear.
           </h2>
           <p className="mt-3 text-slate-600">Cadastre sua igreja em minutos e comece a receber doações ainda hoje.</p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -256,7 +256,7 @@ function TK2LandingPage() {
 
       <footer className="border-t border-slate-200 bg-slate-50 py-10">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 text-sm text-slate-500 sm:flex-row">
-          <div>© {new Date().getFullYear()} TicketConnect. Todos os direitos reservados.</div>
+          <div>© {new Date().getFullYear()} Semear. Todos os direitos reservados.</div>
           <div className="flex items-center gap-5">
             <a href="/login" className="hover:text-slate-900">
               Entrar
@@ -1006,7 +1006,7 @@ function PixDialog({
   const brCode = buildPixPayload({
     key,
     amount: amount ? amount.replace(/[^\d,.-]/g, "") : undefined,
-    merchantName: "TicketConnect",
+    merchantName: "Semear",
     merchantCity: "SAO PAULO",
   });
   const copy = async () => {
@@ -1776,7 +1776,7 @@ export function ChurchPageView({ tenantOverride }: { tenantOverride?: Tenant | n
         <p style={{ fontSize: 14, fontWeight: 600, color: "#111827", margin: "0 0 2px" }}>{CHURCH.name}</p>
         {CHURCH.tagline && <p style={{ fontSize: 12, color: "#6B7280", margin: "0 0 12px" }}>{CHURCH.tagline}</p>}
         <p style={{ fontSize: 11, color: "#9CA3AF", margin: 0 }}>
-          Tecnologia fornecida por <span style={{ color: "#6B7280", fontWeight: 600 }}>TicketConnect</span>
+          Tecnologia fornecida por <span style={{ color: "#6B7280", fontWeight: 600 }}>Semear</span>
         </p>
       </footer>
     </div>
