@@ -34,7 +34,6 @@ type Props = {
 };
 
 const PRESETS = [10, 25, 50, 100, 200];
-const MIN_DONATION_VALUE = 5;
 
 const METHOD_COPY: Record<ContribMethod["key"], { title: string; subtitle: string; cta: string }> = {
   pix: {
@@ -355,10 +354,6 @@ export function ContribuicaoModal({ isOpen, onClose, onConfirm, method, costCent
   const handleConfirm = async (override?: number) => {
     const num = override ?? Number(value);
     if (!num || num <= 0) return;
-    if (num < MIN_DONATION_VALUE) {
-      setError(`O valor mínimo para contribuição é R$ ${MIN_DONATION_VALUE},00.`);
-      return;
-    }
     if (!needsPayer) {
       onConfirm?.(num);
       onClose();
@@ -912,11 +907,6 @@ export function ContribuicaoModal({ isOpen, onClose, onConfirm, method, costCent
                 className="ml-2 w-full bg-transparent text-3xl font-bold text-[#7C3AED] outline-none placeholder:text-[#7C3AED]/30"
               />
             </div>
-            {Number(value) > 0 && Number(value) < MIN_DONATION_VALUE && (
-              <p className="mt-1.5 text-xs font-medium text-red-600">
-                Valor mínimo: R$ {MIN_DONATION_VALUE},00
-              </p>
-            )}
 
             <div className="mt-4 grid grid-cols-3 gap-2.5">
               {PRESETS.map((v) => {
@@ -1283,7 +1273,7 @@ export function ContribuicaoModal({ isOpen, onClose, onConfirm, method, costCent
             <button
               onClick={() => handleConfirm()}
               className="mt-4 flex h-[52px] w-full items-center justify-center gap-2 rounded-full bg-[#7C3AED] text-base font-semibold text-white transition hover:bg-[#6D28D9] disabled:opacity-50"
-              disabled={!Number(value) || Number(value) < MIN_DONATION_VALUE || submitting}
+              disabled={!Number(value) || submitting}
             >
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
               {submitting ? (isCard ? "Processando..." : "Gerando...") : copy.cta}
