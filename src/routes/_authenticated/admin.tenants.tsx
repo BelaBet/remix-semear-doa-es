@@ -14,8 +14,10 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { EmptyRow, LoadingRow } from "@/components/empty-row";
-import { Eye, Pause, Play, Trash2 } from "lucide-react";
+import { Eye, Pause, Play, Trash2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { translateError } from "@/lib/translate-error";
 
@@ -33,13 +35,23 @@ function TenantsPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [imperId, setImperId] = useState<string | null>(null);
   const [imperReason, setImperReason] = useState("");
+  const [editTenant, setEditTenant] = useState<{
+    id: string;
+    name: string;
+    slug: string;
+    custom_domain: string | null;
+    logo_url: string | null;
+    primary_color: string | null;
+    secondary_color: string | null;
+  } | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-tenants"],
     queryFn: async () => {
       const { data: tenants } = await supabase
         .from("tenants")
-        .select("id,name,slug,custom_domain,active,created_at,deleted_at")
+        .select("id,name,slug,custom_domain,logo_url,primary_color,secondary_color,active,created_at,deleted_at")
         .is("deleted_at", null)
         .order("created_at", { ascending: false });
       const ids = (tenants ?? []).map((t) => t.id);
@@ -91,6 +103,34 @@ function TenantsPage() {
     }
   };
 
+  const saveEdit = async () => {
+    if (!editTenant) return;
+    if (!editTenant.name.trim() || !editTenant.slug.trim()) {
+      toast.error("Nome e slug são obrigatórios.");
+      return;
+    }
+    setSavingEdit(true);
+    const { error } = await supabase
+      .from("tenants")
+      .update({
+        name: editTenant.name.trim(),
+        slug: editTenant.slug.trim(),
+        custom_domain: editTenant.custom_domain?.trim() || null,
+        logo_url: editTenant.logo_url?.trim() || null,
+        primary_color: editTenant.primary_color?.trim() || null,
+        secondary_color: editTenant.secondary_color?.trim() || null,
+      })
+      .eq("id", editTenant.id);
+    setSavingEdit(false);
+    if (error) {
+      toast.error(translateError(error));
+    } else {
+      toast.success("Dados da igreja atualizados");
+      setEditTenant(null);
+      qc.invalidateQueries({ queryKey: ["admin-tenants"] });
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div>
@@ -133,6 +173,24 @@ function TenantsPage() {
                 <TableCell className="text-xs">{new Date(t.created_at).toLocaleDateString("pt-BR")}</TableCell>
                 <TableCell>
                   <div className="flex justify-end gap-1">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      title="Editar"
+                      onClick={() =>
+                        setEditTenant({
+                          id: t.id,
+                          name: t.name,
+                          slug: t.slug,
+                          custom_domain: t.custom_domain,
+                          logo_url: t.logo_url,
+                          primary_color: t.primary_color,
+                          secondary_color: t.secondary_color,
+                        })
+                      }
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
                     <Button size="icon" variant="ghost" title="Acessar como" onClick={() => { setImperId(t.id); setImperReason(""); }}>
                       <Eye className="h-4 w-4" />
                     </Button>
@@ -186,6 +244,94 @@ function TenantsPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => { setImperId(null); setImperReason(""); }}>Cancelar</Button>
             <Button onClick={confirmImpersonate}>Iniciar impersonação</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editTenant} onOpenChange={(v) => !v && setEditTenant(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar dados da igreja</DialogTitle>
+          </DialogHeader>
+          {editTenant && (
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-name">Nome</Label>
+                <Input
+                  id="edit-name"
+                  value={editTenant.name}
+                  onChange={(e) => setEditTenant({ ...editTenant, name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-slug">Slug (URL pública)</Label>
+                <Input
+                  id="edit-slug"
+                  value={editTenant.slug}
+                  onChange={(e) => setEditTenant({ ...editTenant, slug: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-domain">Domínio customizado</Label>
+                <Input
+                  id="edit-domain"
+                  placeholder="doacoes.minhaigreja.com.br"
+                  value={editTenant.custom_domain ?? ""}
+                  onChange={(e) => setEditTenant({ ...editTenant, custom_domain: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-logo">URL da logo</Label>
+                <Input
+                  id="edit-logo"
+                  placeholder="https://..."
+                  value={editTenant.logo_url ?? ""}
+                  onChange={(e) => setEditTenant({ ...editTenant, logo_url: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-primary">Cor primária</Label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      className="h-9 w-9 shrink-0 cursor-pointer rounded border"
+                      value={editTenant.primary_color || "#1a1a1a"}
+                      onChange={(e) => setEditTenant({ ...editTenant, primary_color: e.target.value })}
+                    />
+                    <Input
+                      id="edit-primary"
+                      value={editTenant.primary_color ?? ""}
+                      onChange={(e) => setEditTenant({ ...editTenant, primary_color: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-secondary">Cor secundária</Label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      className="h-9 w-9 shrink-0 cursor-pointer rounded border"
+                      value={editTenant.secondary_color || "#f5f5f5"}
+                      onChange={(e) => setEditTenant({ ...editTenant, secondary_color: e.target.value })}
+                    />
+                    <Input
+                      id="edit-secondary"
+                      value={editTenant.secondary_color ?? ""}
+                      onChange={(e) => setEditTenant({ ...editTenant, secondary_color: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditTenant(null)} disabled={savingEdit}>
+              Cancelar
+            </Button>
+            <Button onClick={saveEdit} disabled={savingEdit}>
+              {savingEdit ? "Salvando..." : "Salvar alterações"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
