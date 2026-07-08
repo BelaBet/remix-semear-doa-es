@@ -14,7 +14,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { z } from "zod";
 import { cpf, cnpj } from "cpf-cnpj-validator";
 import { useServerFn } from "@tanstack/react-start";
-import { reserveTenantForSignup } from "@/lib/tenant-signup.functions";
+import { reserveTenantForSignup, checkEmailRegistered } from "@/lib/tenant-signup.functions";
 
 export const Route = createFileRoute("/signup")({
   component: SignupPage,
