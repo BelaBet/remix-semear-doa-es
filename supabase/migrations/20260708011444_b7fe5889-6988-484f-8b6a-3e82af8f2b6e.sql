@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.is_email_registered(text) FROM PUBLIC, anon, authenticated;

@@ -14,7 +14,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { z } from "zod";
 import { cpf, cnpj } from "cpf-cnpj-validator";
 import { useServerFn } from "@tanstack/react-start";
-import { reserveTenantForSignup } from "@/lib/tenant-signup.functions";
+import { reserveTenantForSignup, checkEmailRegistered } from "@/lib/tenant-signup.functions";
 
 export const Route = createFileRoute("/signup")({
   component: SignupPage,
@@ -74,6 +74,7 @@ function maskCPF(v: string) {
 function SignupPage() {
   const { tenant } = useTenant();
   const reserveTenant = useServerFn(reserveTenantForSignup);
+  const checkEmail = useServerFn(checkEmailRegistered);
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -125,12 +126,13 @@ function SignupPage() {
     setLoading(true);
 
     // 1) E-mail já existe?
-    const { data: taken, error: rpcError } = await supabase.rpc("is_email_registered", {
-      _email: normalizedEmail,
-    });
-    if (rpcError) {
+    let taken = false;
+    try {
+      const res = await checkEmail({ data: { email: normalizedEmail } });
+      taken = res.taken;
+    } catch (err) {
       setLoading(false);
-      return toast.error(translateError(rpcError));
+      return toast.error(translateError(err));
     }
     if (taken) {
       setLoading(false);

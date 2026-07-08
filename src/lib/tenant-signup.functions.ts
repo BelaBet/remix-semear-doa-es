@@ -435,3 +435,19 @@ export const provisionTenant = createServerFn({ method: "POST" })
 
 // Alias retrocompatível
 export const reserveTenantForSignup = provisionTenant;
+
+// Server-side email existence check. Uses the admin client so we can revoke
+// EXECUTE on public.is_email_registered from the API roles without breaking
+// the signup flow.
+export const checkEmailRegistered = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) =>
+    z.object({ email: z.string().trim().email().max(200) }).parse(data),
+  )
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const email = data.email.toLowerCase();
+    const { data: row, error } = await supabaseAdmin
+      .rpc("is_email_registered" as never, { _email: email } as never);
+    if (error) throw new Error(error.message);
+    return { taken: Boolean(row) };
+  });
